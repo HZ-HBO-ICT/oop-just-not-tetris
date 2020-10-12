@@ -82,6 +82,19 @@ class GameItem {
             }
     }
 
+    /**
+     * Return `true` if, and only if the distance between the centers of the
+     * bounding circles of this item and the specified item is lower than or
+     * equal to the sum of the two radii.
+     * 
+     * @param {GameItem} item the other GameItem
+     */
+    public collidesWith(item: GameItem): boolean {
+        const distance = this.position.subtract(item.position).size;
+        const collision_distance = this.collisionRadius + item.collisionRadius;
+        return distance <= collision_distance;
+    }
+
     public die() {
         this._state = GameItem.STATE_DEAD;
     }
