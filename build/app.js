@@ -5,6 +5,7 @@ class Game {
         this.timing = new Timing();
         this.animate = () => {
             this.timing.onFrameStart();
+            this.input.onFrameStart();
             if (this.currentView != null) {
                 this.currentView.listen(this.input);
                 this.currentView.move(this.canvas);
@@ -37,7 +38,6 @@ class Game {
     }
     setCurrentView(view) {
         this.currentView = view;
-        console.log("Setting view to " + view);
         this.currentView.init(this);
         this.timing.onViewSwitched();
     }
@@ -156,27 +156,39 @@ class StartView extends View {
     constructor() {
         super(...arguments);
         this.shouldGoToNextView = false;
+        this.buttonPosition = new Vector();
     }
     init(game) {
         super.init(game);
+        this.shouldGoToNextView = false;
         this.buttonImage = game.repo.getImage("PNG.UI.buttonBlue");
     }
     listen(input) {
         super.listen(input);
-        if (input.keyboard.isKeyDown(Input.KEY_S)) {
+        if (input.keyboard.isKeyDown(Input.KEY_S) || (input.mouse.buttonClicked
+            && this.checkInButton(input.mouse.position))) {
             this.shouldGoToNextView = true;
         }
     }
+    checkInButton(position) {
+        const x1 = this.buttonPosition.x - this.buttonImage.width / 2;
+        const x2 = x1 + this.buttonImage.width;
+        const y1 = this.buttonPosition.y - this.buttonImage.height / 2;
+        const y2 = y1 + this.buttonImage.height;
+        return position.x >= x1 && position.x <= x2 &&
+            position.y >= y1 && position.y <= y2;
+    }
     adjust(game) {
+        this.buttonPosition = this.center.add(new Vector(0, 229));
         if (this.shouldGoToNextView) {
-            game.switchViewTo('level');
+            game.switchViewTo('start');
         }
     }
     draw(ctx) {
         this.writeTextToCanvas(ctx, "Hello World!", 140, this.center.x, 150);
         this.writeTextToCanvas(ctx, "PRESS PLAY OR HIT 'S' TO START", 40, this.center.x, this.center.y - 135);
-        this.drawImage(ctx, this.buttonImage, this.center.x, this.center.y + 220);
-        this.writeTextToCanvas(ctx, "Play", 20, this.center.x, this.center.y + 229, 'center', 'black');
+        this.drawImage(ctx, this.buttonImage, this.buttonPosition.x, this.buttonPosition.y);
+        this.writeTextToCanvas(ctx, "Play", 20, this.buttonPosition.x, this.buttonPosition.y + 9, 'center', 'black');
     }
 }
 class GameItem {
@@ -231,6 +243,11 @@ class GameItem {
             this._position.y - this._image.height / 2 < 0) {
             this.die();
         }
+    }
+    collidesWith(item) {
+        const distance = this.position.subtract(item.position).size;
+        const collision_distance = this.collisionRadius + item.collisionRadius;
+        return distance <= collision_distance;
     }
     die() {
         this._state = GameItem.STATE_DEAD;
@@ -300,6 +317,10 @@ class Input {
         this.mouse = new MouseListener();
         this.window = new WindowListener();
     }
+    onFrameStart() {
+        this.mouse.onFrameStart();
+        this.keyboard.onFrameStart();
+    }
 }
 Input.MOUSE_NOTHING = 0;
 Input.MOUSE_PRIMARY = 1;
@@ -356,44 +377,70 @@ Input.KEY_Y = 89;
 Input.KEY_Z = 90;
 class KeyListener {
     constructor() {
-        this.keyDown = (ev) => {
-            this.keyCodeStates[ev.keyCode] = true;
-        };
-        this.keyUp = (ev) => {
-            this.keyCodeStates[ev.keyCode] = false;
-        };
         this.keyCodeStates = new Array();
-        window.addEventListener("keydown", this.keyDown);
-        window.addEventListener("keyup", this.keyUp);
+        this.keyCodeTyped = new Array();
+        this.prev = new Array();
+        window.addEventListener("keydown", (ev) => {
+            this.keyCodeStates[ev.keyCode] = true;
+        });
+        window.addEventListener("keyup", (ev) => {
+            this.keyCodeStates.splice(ev.keyCode, 1);
+        });
+    }
+    onFrameStart() {
+        console.log(this.keyCodeStates);
+        this.keyCodeTyped = new Array();
+        this.keyCodeStates.forEach((val, key) => {
+            if (this.prev[key] != val && !this.keyCodeStates[key]) {
+                this.keyCodeTyped[key] = true;
+                this.prev[key] = val;
+            }
+        });
     }
     isKeyDown(keyCode) {
         return this.keyCodeStates[keyCode] == true;
     }
+    isKeyTyped(keyCode) {
+        return this.keyCodeTyped[keyCode] == true;
+    }
 }
 class MouseListener {
     constructor() {
-        this.mouseDown = (ev) => {
-            this.buttonDown = ev.buttons;
-        };
-        this.mouseUp = (ev) => {
-            this.buttonDown = 0;
-        };
-        this.mouseMove = (ev) => {
-            this.position = new Vector(ev.clientX, ev.clientY);
-        };
-        this.mouseEnter = (ev) => {
-            this.inWindow = true;
-        };
-        this.mouseLeave = (ev) => {
-            this.inWindow = false;
-        };
-        this.position = new Vector();
-        this.inWindow = true;
-        window.addEventListener("mousedown", this.mouseDown);
-        window.addEventListener("mouseup", this.mouseUp);
-        window.addEventListener("mousemove", this.mouseMove);
-        document.addEventListener("mouseenter", this.mouseEnter);
-        document.addEventListener("mouseleave", this.mouseLeave);
+        this._inWindow = true;
+        this._position = new Vector();
+        this._buttonDown = 0;
+        window.addEventListener("mousedown", (ev) => {
+            this._buttonDown = ev.buttons;
+        });
+        window.addEventListener("mouseup", (ev) => {
+            this._buttonDown = 0;
+        });
+        window.addEventListener("mousemove", (ev) => {
+            this._position = new Vector(ev.clientX, ev.clientY);
+        });
+        document.addEventListener("mouseenter", (ev) => {
+            this._inWindow = true;
+        });
+        document.addEventListener("mouseleave", (ev) => {
+            this._inWindow = false;
+        });
+    }
+    onFrameStart() {
+        this._buttonClicked = this._previousButtonDown != this._buttonDown
+            && this._buttonDown == Input.MOUSE_NOTHING;
+        this._previousButtonDown = this._buttonDown;
+    }
+    get inWindow() {
+        return this._inWindow;
+    }
+    get position() {
+        return this._position;
+    }
+    get buttonDown() {
+        return this._buttonDown;
+    }
+    get buttonClicked() {
+        return this._buttonClicked;
     }
 }
 class WindowListener {

@@ -89,4 +89,13 @@ class Input {
      */
     public readonly window : WindowListener = new WindowListener();
 
+    /**
+     * Let all the inputs handle their changes between the previous frame and 
+     * now.
+     */
+    public onFrameStart() {
+        this.mouse.onFrameStart();
+        this.keyboard.onFrameStart();
+    }
+
 }
