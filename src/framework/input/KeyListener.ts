@@ -28,8 +28,7 @@ class KeyListener
             this.keyCodeStates[ev.keyCode] = true;
         });
         window.addEventListener("keyup", (ev: KeyboardEvent) => {
-            //this.keyCodeStates[ev.keyCode] = false;
-            this.keyCodeStates.splice(ev.keyCode, 1);
+            this.keyCodeStates[ev.keyCode] = false;
         });
     }
 
