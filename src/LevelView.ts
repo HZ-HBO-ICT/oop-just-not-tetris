@@ -6,8 +6,6 @@ class LevelView extends View {
     private backgroundSize: Vector = new Vector(446, 700);
     private backgroundPosition: Vector;
 
-    private playingField: Block[][] = [];
-
     private playingFieldSize: Vector = new Vector(308, 618);
     private playingFieldPosition: Vector;
 
@@ -93,19 +91,19 @@ class LevelView extends View {
         const randomBlock: string = this.getRandomBlock();
         switch (randomBlock) {
             case "I" :
-                this.movingBlock = new IBlock(game.repo.getImage(randomBlock));
+                this.movingBlock = new Block(game.repo.getImage(randomBlock), 4, 1);
                 break;
             case "L" :
-                this.movingBlock = new LBlock(game.repo.getImage(randomBlock));
+                this.movingBlock = new Block(game.repo.getImage(randomBlock), 3, 2);
                 break;
             case "R" :
-                this.movingBlock = new RBlock(game.repo.getImage(randomBlock));
+                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 2);
                 break;
             case "S" :
-                this.movingBlock = new SBlock(game.repo.getImage(randomBlock));
+                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 3);
                 break;
             case "T" :
-                this.movingBlock = new TBlock(game.repo.getImage(randomBlock));
+                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 3);
                 break;
         }
     }

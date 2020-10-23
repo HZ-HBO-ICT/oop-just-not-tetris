@@ -1,17 +1,25 @@
 /// <reference path="framework/GameItem.ts"/>
 
-abstract class Block extends GameItem {
+class Block extends GameItem {
 
     private playingFieldPosition: Vector;
     private playingFieldSize: Vector;
+    private _blockHeight: number;
+    private _blockWidth: number;
 
-    constructor(image: HTMLImageElement) {
+    constructor(image: HTMLImageElement, blockHeight: number, blockWidth: number) {
         super(image, null, new Vector(0, -44), 0, 0);
+        this._blockHeight = blockHeight;
+        this._blockWidth = blockWidth;
     }
 
-    public abstract get blockHeight(): number;
+    public get blockHeight(): number {
+        return this._blockHeight;
+    }
 
-    public abstract get blockWidth(): number;
+    public get blockWidth(): number {
+        return this._blockWidth;
+    }
 
     public moveLeft() {
         const leftSidePlayingField = this.playingFieldPosition.x - this.playingFieldSize.x / 2;

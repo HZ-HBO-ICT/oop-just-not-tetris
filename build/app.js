@@ -95,8 +95,16 @@ GameItem.STATE_ALIVE = 0;
 GameItem.STATE_DYING = 8;
 GameItem.STATE_DEAD = 9;
 class Block extends GameItem {
-    constructor(image) {
+    constructor(image, blockHeight, blockWidth) {
         super(image, null, new Vector(0, -44), 0, 0);
+        this._blockHeight = blockHeight;
+        this._blockWidth = blockWidth;
+    }
+    get blockHeight() {
+        return this._blockHeight;
+    }
+    get blockWidth() {
+        return this._blockWidth;
     }
     moveLeft() {
         const leftSidePlayingField = this.playingFieldPosition.x - this.playingFieldSize.x / 2;
@@ -132,22 +140,6 @@ class Block extends GameItem {
             this._position = new Vector(initialXPosition, initialYPosition);
         }
         super.draw(ctx);
-    }
-}
-class IBlock extends Block {
-    get blockHeight() {
-        return 4;
-    }
-    get blockWidth() {
-        return 1;
-    }
-}
-class LBlock extends Block {
-    get blockHeight() {
-        return 3;
-    }
-    get blockWidth() {
-        return 2;
     }
 }
 class View {
@@ -281,21 +273,48 @@ class LevelView extends View {
         const randomBlock = this.getRandomBlock();
         switch (randomBlock) {
             case "I":
-                this.movingBlock = new IBlock(game.repo.getImage(randomBlock));
+                this.movingBlock = new Block(game.repo.getImage(randomBlock), 4, 1);
                 break;
             case "L":
-                this.movingBlock = new LBlock(game.repo.getImage(randomBlock));
+                this.movingBlock = new Block(game.repo.getImage(randomBlock), 3, 2);
                 break;
             case "R":
-                this.movingBlock = new RBlock(game.repo.getImage(randomBlock));
+                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 2);
                 break;
             case "S":
-                this.movingBlock = new SBlock(game.repo.getImage(randomBlock));
+                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 3);
                 break;
             case "T":
-                this.movingBlock = new TBlock(game.repo.getImage(randomBlock));
+                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 3);
                 break;
         }
+    }
+}
+class StartView extends View {
+    constructor() {
+        super(...arguments);
+        this.shouldGoToNextView = false;
+    }
+    init(game) {
+        super.init(game);
+        this.buttonImage = game.repo.getImage("buttonBlue");
+    }
+    listen(input) {
+        super.listen(input);
+        if (input.keyboard.isKeyDown(Input.KEY_S)) {
+            this.shouldGoToNextView = true;
+        }
+    }
+    adjust(game) {
+        if (this.shouldGoToNextView) {
+            game.switchViewTo('level');
+        }
+    }
+    draw(ctx) {
+        this.writeTextToCanvas(ctx, "Just not Tetris", 140, this.center.x, 150);
+        this.writeTextToCanvas(ctx, "HIT 'S' TO START", 40, this.center.x, this.center.y - 135);
+        this.drawImage(ctx, this.buttonImage, this.center.x, this.center.y + 220);
+        this.writeTextToCanvas(ctx, "Play", 20, this.center.x, this.center.y + 229, 'center', 'black');
     }
 }
 class Game {
@@ -352,7 +371,7 @@ class Game {
         return Math.random() * (max - min) + min;
     }
 }
-class MyGame extends Game {
+class Tetris extends Game {
     initResources() {
         return new ResourceConfig([
             "buttonBlue.png",
@@ -375,59 +394,8 @@ class MyGame extends Game {
 }
 let game = null;
 window.addEventListener('load', function () {
-    game = new MyGame(document.getElementById('canvas'));
+    game = new Tetris(document.getElementById('canvas'));
 });
-class RBlock extends Block {
-    get blockHeight() {
-        return 2;
-    }
-    get blockWidth() {
-        return 2;
-    }
-}
-class SBlock extends Block {
-    get blockHeight() {
-        return 2;
-    }
-    get blockWidth() {
-        return 3;
-    }
-}
-class StartView extends View {
-    constructor() {
-        super(...arguments);
-        this.shouldGoToNextView = false;
-    }
-    init(game) {
-        super.init(game);
-        this.buttonImage = game.repo.getImage("buttonBlue");
-    }
-    listen(input) {
-        super.listen(input);
-        if (input.keyboard.isKeyDown(Input.KEY_S)) {
-            this.shouldGoToNextView = true;
-        }
-    }
-    adjust(game) {
-        if (this.shouldGoToNextView) {
-            game.switchViewTo('level');
-        }
-    }
-    draw(ctx) {
-        this.writeTextToCanvas(ctx, "Just not Tetris", 140, this.center.x, 150);
-        this.writeTextToCanvas(ctx, "HIT 'S' TO START", 40, this.center.x, this.center.y - 135);
-        this.drawImage(ctx, this.buttonImage, this.center.x, this.center.y + 220);
-        this.writeTextToCanvas(ctx, "Play", 20, this.center.x, this.center.y + 229, 'center', 'black');
-    }
-}
-class TBlock extends Block {
-    get blockHeight() {
-        return 2;
-    }
-    get blockWidth() {
-        return 3;
-    }
-}
 class LoadView extends View {
     constructor(nextView) {
         super();
