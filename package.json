@@ -8,10 +8,12 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "watch": "tsc-watch "
+    "watch": "tsc-watch ",
+    "start": "lite-server"
   },
   "devDependencies": {
     "typescript": "^3.6",
-    "tsc-watch": "^4.0"
+    "tsc-watch": "^4.0",
+    "lite-server": "^2.5.4"
   }
 }

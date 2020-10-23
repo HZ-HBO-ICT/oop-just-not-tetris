@@ -167,6 +167,7 @@ abstract class Game {
      */
     private setCurrentView(view: View) {
         this.currentView = view;
+        console.log("Setting view to " + view)
         this.currentView.init(this);
         this.timing.onViewSwitched();
     }
@@ -190,7 +191,6 @@ abstract class Game {
      */
     animate = () => {
         this.timing.onFrameStart();
-        this.input.onFrameStart();
         if (this.currentView != null) {
 
             this.currentView.listen(this.input);

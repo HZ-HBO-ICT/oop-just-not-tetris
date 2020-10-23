@@ -8,78 +8,79 @@
 class MouseListener
 {
 
-    private _inWindow : boolean = true;
+    /**
+     * True if the mouse is currently in the document window.
+     */
+    inWindow : boolean;
 
-    private _position : Vector = new Vector();
 
-    private _buttonDown : number = 0;
+    /**
+     * Holds the current mouse position.
+     */
+    position : Vector;
 
-    private _previousButtonDown : number;
 
-    private _buttonClicked : boolean;
+    /**
+     * True if one of the mouse buttons is down at the moment.
+     */
+    buttonDown : number;
 
     /**
      * Construct an object of this class.
      */
     constructor() {
-        // Add listeners to all relevant events.
-        window.addEventListener("mousedown", (ev: MouseEvent) => {
-            this._buttonDown = ev.buttons;
-        });
-        window.addEventListener("mouseup", (ev: MouseEvent) => {
-            this._buttonDown = 0;
-        });
-        window.addEventListener("mousemove", (ev: MouseEvent) => {
-            this._position = new Vector(ev.clientX, ev.clientY);
-        });
-        document.addEventListener("mouseenter", (ev: MouseEvent) => {
-            this._inWindow = true;
-        });
-        document.addEventListener("mouseleave", (ev: MouseEvent) => {
-            this._inWindow = false;
-        });
+        this.position = new Vector();
+        this.inWindow = true;
+        window.addEventListener("mousedown", this.mouseDown);
+        window.addEventListener("mouseup", this.mouseUp);
+        window.addEventListener("mousemove", this.mouseMove);
+        document.addEventListener("mouseenter", this.mouseEnter);
+        document.addEventListener("mouseleave", this.mouseLeave);
     }
 
 
     /**
-     * Set the state change flags for the coming frame.
+     * @internal Arrow method that catches mouseDown events
+     * WARNING: DO NOT USE OR REMOVE THIS METHOD
      */
-    public onFrameStart() {
-        // Set the buttonClicked property.
-        this._buttonClicked = this._previousButtonDown != this._buttonDown 
-            && this._buttonDown == Input.MOUSE_NOTHING;
-        this._previousButtonDown = this._buttonDown;
+    mouseDown = (ev: MouseEvent) => {
+        this.buttonDown = ev.buttons;
     }
 
-    /**
-     * `True` if the mouse is currently in the document window.
-     */
-    public get inWindow() : boolean {
-        return this._inWindow;   
-    }
 
     /**
-     * Holds the current mouse position.
+     * @internal Arrow method that catches mouseUp events
+     * WARNING: DO NOT USE OR REMOVE THIS METHOD
      */
-    public get position(): Vector {
-        return this._position;
+    mouseUp = (ev: MouseEvent) => {
+        this.buttonDown = 0;
     }
 
-    /**
-     * `True` if one of the mouse buttons is down at the moment.
-     */
-    public get buttonDown(): number {
-        return this._buttonDown;
-    }
 
     /**
-     * Returns `true` if sometime during the previous frame the buttonDown
-     * value changed to `Input.MOUSE_NOTHING`. This means that the mouse button
-     * was released. This flag will only be true during one frame and will not
-     * be set until the buttonDown value changes again from some other value to
-     * `Input.MOUSE_NOTHING`.
+     * @internal Arrow method that catches mouseMove events
+     * WARNING: DO NOT USE OR REMOVE THIS METHOD
      */
-    public get buttonClicked(): boolean {
-        return this._buttonClicked;
-    }    
+    mouseMove = (ev: MouseEvent) => {
+       	this.position = new Vector(ev.clientX, ev.clientY);
+    }
+
+
+    /**
+     * @internal Arrow method that catches mouseEnter events
+     * WARNING: DO NOT USE OR REMOVE THIS METHOD
+     */
+    mouseEnter = (ev: MouseEvent) => {
+        this.inWindow = true;
+    }
+
+    
+    /**
+     * @internal Arrow method that catches mouseLeave events
+     * WARNING: DO NOT USE OR REMOVE THIS METHOD
+     */
+    mouseLeave = (ev: MouseEvent) => {
+        this.inWindow = false;
+    }
+
 }

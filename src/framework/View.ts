@@ -208,7 +208,7 @@ abstract class View {
         ctx.save();
         ctx.translate(xCoordinate, yCoordinate);
         ctx.rotate(angle);
-        ctx.drawImage(image, -image.width / 2,  -image.height / 2);
+        ctx.drawImage(image, -image.width / 2,  -image.height / 2, image.width, image.height);
         ctx.restore();
     }
 

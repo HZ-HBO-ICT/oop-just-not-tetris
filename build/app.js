@@ -1,93 +1,155 @@
-class Game {
-    constructor(canvasId) {
-        this.input = new Input();
-        this.session = { debug: false };
-        this.timing = new Timing();
-        this.animate = () => {
-            this.timing.onFrameStart();
-            this.input.onFrameStart();
-            if (this.currentView != null) {
-                this.currentView.listen(this.input);
-                this.currentView.move(this.canvas);
-                this.currentView.prepareDraw(this.ctx);
-                this.currentView.draw(this.ctx);
-                if (this.session.debug) {
-                    this.currentView.drawDebug(this.ctx);
-                }
-                this.currentView.adjust(this);
-            }
-            this.timing.onFrameEnd();
-            requestAnimationFrame(this.animate);
-        };
-        this.canvas = canvasId;
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-        this.ctx = this.canvas.getContext('2d');
-        this.repo = new ResourceRepository(this.initResources());
-        this.initGame();
-        this.views = this.initViews();
-        this.startAnimation();
-        this.setCurrentView(new LoadView(Object.keys(this.views)[0]));
+class GameItem {
+    constructor(image, position, speed, angle, angularSpeed, offscreenBehaviour = GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW) {
+        this._image = image;
+        this._position = position;
+        this._speed = speed;
+        this._angle = angle;
+        this._angularSpeed = angularSpeed;
+        this._offscreenBehaviour = offscreenBehaviour;
     }
-    switchViewTo(viewName) {
-        const newView = this.views[viewName];
-        if (!newView) {
-            throw new Error(`A view with the name ${viewName} does not exist.`);
+    get collisionRadius() {
+        return this._image.height / 2;
+    }
+    get position() {
+        return this._position;
+    }
+    get speed() {
+        return this._speed;
+    }
+    move(canvas) {
+        this._position = new Vector(this._position.x + this._speed.x, this._position.y - this._speed.y);
+        switch (this._offscreenBehaviour) {
+            case GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW:
+                this.adjustOverflow(canvas.width, canvas.height);
+                break;
+            case GameItem.OFFSCREEN_BEHAVIOUR_BOUNCE:
+                break;
+            case GameItem.OFFSCREEN_BEHAVIOUR_DIE:
+                this.adjustDie(canvas.width, canvas.height);
+                break;
         }
-        this.setCurrentView(newView);
+        this._angle += this._angularSpeed;
     }
-    setCurrentView(view) {
-        this.currentView = view;
-        this.currentView.init(this);
-        this.timing.onViewSwitched();
+    adjustOverflow(maxX, maxY) {
+        if (this._position.x > maxX) {
+            this._position = new Vector(-this._image.width, this._position.y);
+        }
+        else if (this._position.x < -this._image.width) {
+            this._position = new Vector(maxX, this._position.y);
+        }
+        if (this._position.y > maxY + this._image.height / 2) {
+            this._position = new Vector(this._position.x, -this._image.height / 2);
+        }
+        else if (this._position.y < -this._image.height / 2) {
+            this._position = new Vector(this._position.x, maxY);
+        }
     }
-    startAnimation() {
-        console.log('start animation');
-        requestAnimationFrame(this.animate);
+    adjustDie(maxX, maxY) {
+        if (this._position.x + this._image.width > maxX || this._position.x < 0 ||
+            this._position.y + this._image.height / 2 > maxY ||
+            this._position.y - this._image.height / 2 < 0) {
+            this.die();
+        }
     }
-    static randomInteger(min, max) {
-        return Math.round(Game.randomNumber(min, max));
+    die() {
+        this._state = GameItem.STATE_DEAD;
     }
-    static randomNumber(min, max) {
-        return Math.random() * (max - min) + min;
+    isDead() {
+        return this._state == GameItem.STATE_DEAD;
+    }
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this._position.x, this._position.y);
+        ctx.rotate(this._angle);
+        ctx.drawImage(this._image, -this._image.width / 2, -this._image.height / 2);
+        ctx.restore();
+    }
+    drawDebug(ctx) {
+        ctx.save();
+        ctx.strokeStyle = '#ffffb3';
+        ctx.beginPath();
+        this.drawCenterInfo(ctx);
+        this.drawCollisionBounds(ctx);
+        ctx.stroke();
+        ctx.restore();
+    }
+    drawCenterInfo(ctx) {
+        ctx.moveTo(this._position.x - 50, this._position.y);
+        ctx.lineTo(this._position.x + 50, this._position.y);
+        ctx.moveTo(this._position.x, this._position.y - 50);
+        ctx.lineTo(this._position.x, this._position.y + 50);
+        const text = `(${this._position.x.toPrecision(3)},${this._position.y.toPrecision(3)})`;
+        ctx.font = `10px courier`;
+        ctx.textAlign = 'left';
+        ctx.fillText(text, this._position.x + 10, this._position.y - 10);
+    }
+    drawCollisionBounds(ctx) {
+        ctx.moveTo(this._position.x, this._position.y);
+        ctx.arc(this._position.x, this._position.y, this._image.width / 2, 0, 2 * Math.PI, false);
     }
 }
-class MyGame extends Game {
-    initResources() {
-        return new ResourceConfig([
-            "PNG/UI/buttonBlue.png",
-        ], "./assets/images/SpaceShooterRedux");
+GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW = 0;
+GameItem.OFFSCREEN_BEHAVIOUR_BOUNCE = 2;
+GameItem.OFFSCREEN_BEHAVIOUR_DIE = 3;
+GameItem.STATE_ALIVE = 0;
+GameItem.STATE_DYING = 8;
+GameItem.STATE_DEAD = 9;
+class Block extends GameItem {
+    constructor(image) {
+        super(image, null, new Vector(0, -44), 0, 0);
     }
-    initGame() {
-        this.session.player = "Player one";
-        this.session.score = 0;
-        this.session.level = 1;
-        this.session.lives = 3;
-        this.session.highscores = [
-            {
-                playerName: 'Loek',
-                score: 40000
-            },
-            {
-                playerName: 'Daan',
-                score: 34000
-            },
-            {
-                playerName: 'Rimmert',
-                score: 200
+    moveLeft() {
+        const leftSidePlayingField = this.playingFieldPosition.x - this.playingFieldSize.x / 2;
+        const leftSideBlock = this.position.x - (this.blockWidth / 2) * 44;
+        if (leftSideBlock - 44 >= leftSidePlayingField) {
+            this._position = new Vector(this._position.x - 44, this._position.y);
+        }
+    }
+    moveRight() {
+        const rightSidePlayingField = this.playingFieldPosition.x + this.playingFieldSize.x / 2;
+        const rightSideBlock = this.position.x + (this.blockWidth / 2) * 44;
+        console.log(rightSidePlayingField, rightSideBlock);
+        if (rightSideBlock + 44 <= rightSidePlayingField) {
+            this._position = new Vector(this._position.x + 44, this._position.y);
+        }
+    }
+    updatePlayingField(playingFieldPosition, playingFieldSize) {
+        this.playingFieldPosition = playingFieldPosition;
+        this.playingFieldSize = playingFieldSize;
+    }
+    draw(ctx) {
+        if (this.position === null) {
+            const leftSide = this.playingFieldPosition.x - this.playingFieldSize.x / 2;
+            let initialXPosition = leftSide + 3 * 44;
+            if (this.blockWidth % 2 !== 0) {
+                initialXPosition += 22;
             }
-        ];
-    }
-    initViews() {
-        return {
-            'start': new StartView(),
-        };
+            const bottom = this.playingFieldPosition.y + this.playingFieldSize.y / 2;
+            let initialYPosition = bottom - 13 * 44;
+            if (this.blockHeight % 2 !== 0) {
+                initialYPosition += 22;
+            }
+            this._position = new Vector(initialXPosition, initialYPosition);
+        }
+        super.draw(ctx);
     }
 }
-let game = null;
-window.addEventListener('load', function () {
-    game = new MyGame(document.getElementById('canvas'));
-});
+class IBlock extends Block {
+    get blockHeight() {
+        return 4;
+    }
+    get blockWidth() {
+        return 1;
+    }
+}
+class LBlock extends Block {
+    get blockHeight() {
+        return 3;
+    }
+    get blockWidth() {
+        return 2;
+    }
+}
 class View {
     constructor() {
         this.center = new Vector();
@@ -148,150 +210,224 @@ class View {
         ctx.save();
         ctx.translate(xCoordinate, yCoordinate);
         ctx.rotate(angle);
-        ctx.drawImage(image, -image.width / 2, -image.height / 2);
+        ctx.drawImage(image, -image.width / 2, -image.height / 2, image.width, image.height);
         ctx.restore();
+    }
+}
+class LevelView extends View {
+    constructor() {
+        super(...arguments);
+        this.backgroundSize = new Vector(446, 700);
+        this.playingFieldSize = new Vector(308, 618);
+        this.availableBlocks = ["I", "L", "R", "S", "T"];
+        this.delay = 250;
+        this.blocksInPlay = [];
+        this.lastMoveDown = performance.now();
+        this.lastMove = performance.now();
+    }
+    init(game) {
+        super.init(game);
+        this.background = game.repo.getImage("background");
+        this.createNewMovingBlock(game);
+    }
+    listen(input) {
+        super.listen(input);
+        const timeSinceLastMove = performance.now() - this.lastMove;
+        if (timeSinceLastMove > 200) {
+            if (input.keyboard.isKeyDown(Input.KEY_LEFT)) {
+                this.movingBlock.moveLeft();
+                this.lastMove = performance.now();
+            }
+            if (input.keyboard.isKeyDown(Input.KEY_RIGHT)) {
+                this.movingBlock.moveRight();
+                this.lastMove = performance.now();
+            }
+        }
+    }
+    draw(ctx) {
+        super.draw(ctx);
+        this.drawPlayingField(ctx);
+        this.blocksInPlay.forEach(block => {
+            block.draw(ctx);
+        });
+        this.movingBlock.updatePlayingField(this.playingFieldPosition, this.playingFieldSize);
+        this.movingBlock.draw(ctx);
+    }
+    move(canvas) {
+        super.move(canvas);
+        if (this.movingBlock.position !== null && performance.now() - this.lastMoveDown > this.delay) {
+            this.lastMoveDown = performance.now();
+            this.movingBlock.move(canvas);
+            const bottomField = this.playingFieldPosition.y + this.playingFieldSize.y / 2;
+            const bottomBlock = this.movingBlock.position.y + (this.movingBlock.blockHeight / 2) * 44;
+            if (bottomField === bottomBlock) {
+                this.blocksInPlay.push(this.movingBlock);
+                this.createNewMovingBlock(this.game);
+            }
+        }
+    }
+    drawPlayingField(ctx) {
+        this.background.width = this.backgroundSize.x;
+        this.background.height = this.backgroundSize.y;
+        this.backgroundPosition = new Vector(this.center.x, this.background.height / 2 + 30);
+        const backgroundTopLeft = new Vector(this.backgroundPosition.x - this.backgroundSize.x / 2, this.backgroundPosition.y - this.backgroundSize.y / 2);
+        this.playingFieldPosition = new Vector(12 + backgroundTopLeft.x + this.playingFieldSize.x / 2, 68 + backgroundTopLeft.y + this.playingFieldSize.y / 2);
+        this.drawImage(ctx, this.background, this.backgroundPosition.x, this.backgroundPosition.y);
+    }
+    getRandomBlock() {
+        return this.availableBlocks[Game.randomInteger(0, this.availableBlocks.length - 1)];
+    }
+    createNewMovingBlock(game) {
+        const randomBlock = this.getRandomBlock();
+        switch (randomBlock) {
+            case "I":
+                this.movingBlock = new IBlock(game.repo.getImage(randomBlock));
+                break;
+            case "L":
+                this.movingBlock = new LBlock(game.repo.getImage(randomBlock));
+                break;
+            case "R":
+                this.movingBlock = new RBlock(game.repo.getImage(randomBlock));
+                break;
+            case "S":
+                this.movingBlock = new SBlock(game.repo.getImage(randomBlock));
+                break;
+            case "T":
+                this.movingBlock = new TBlock(game.repo.getImage(randomBlock));
+                break;
+        }
+    }
+}
+class Game {
+    constructor(canvasId) {
+        this.input = new Input();
+        this.session = { debug: false };
+        this.timing = new Timing();
+        this.animate = () => {
+            this.timing.onFrameStart();
+            if (this.currentView != null) {
+                this.currentView.listen(this.input);
+                this.currentView.move(this.canvas);
+                this.currentView.prepareDraw(this.ctx);
+                this.currentView.draw(this.ctx);
+                if (this.session.debug) {
+                    this.currentView.drawDebug(this.ctx);
+                }
+                this.currentView.adjust(this);
+            }
+            this.timing.onFrameEnd();
+            requestAnimationFrame(this.animate);
+        };
+        this.canvas = canvasId;
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.ctx = this.canvas.getContext('2d');
+        this.repo = new ResourceRepository(this.initResources());
+        this.initGame();
+        this.views = this.initViews();
+        this.startAnimation();
+        this.setCurrentView(new LoadView(Object.keys(this.views)[0]));
+    }
+    switchViewTo(viewName) {
+        const newView = this.views[viewName];
+        if (!newView) {
+            throw new Error(`A view with the name ${viewName} does not exist.`);
+        }
+        this.setCurrentView(newView);
+    }
+    setCurrentView(view) {
+        this.currentView = view;
+        console.log("Setting view to " + view);
+        this.currentView.init(this);
+        this.timing.onViewSwitched();
+    }
+    startAnimation() {
+        console.log('start animation');
+        requestAnimationFrame(this.animate);
+    }
+    static randomInteger(min, max) {
+        return Math.round(Game.randomNumber(min, max));
+    }
+    static randomNumber(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+}
+class MyGame extends Game {
+    initResources() {
+        return new ResourceConfig([
+            "buttonBlue.png",
+            "background.png",
+            "I.png",
+            "L.png",
+            "R.png",
+            "S.png",
+            "T.png",
+        ], "./assets/images/tetris");
+    }
+    initGame() {
+    }
+    initViews() {
+        return {
+            'start': new StartView(),
+            'level': new LevelView()
+        };
+    }
+}
+let game = null;
+window.addEventListener('load', function () {
+    game = new MyGame(document.getElementById('canvas'));
+});
+class RBlock extends Block {
+    get blockHeight() {
+        return 2;
+    }
+    get blockWidth() {
+        return 2;
+    }
+}
+class SBlock extends Block {
+    get blockHeight() {
+        return 2;
+    }
+    get blockWidth() {
+        return 3;
     }
 }
 class StartView extends View {
     constructor() {
         super(...arguments);
         this.shouldGoToNextView = false;
-        this.buttonPosition = new Vector();
     }
     init(game) {
         super.init(game);
-        this.shouldGoToNextView = false;
-        this.buttonImage = game.repo.getImage("PNG.UI.buttonBlue");
+        this.buttonImage = game.repo.getImage("buttonBlue");
     }
     listen(input) {
         super.listen(input);
-        if (input.keyboard.isKeyDown(Input.KEY_S) || (input.mouse.buttonClicked
-            && this.checkInButton(input.mouse.position))) {
+        if (input.keyboard.isKeyDown(Input.KEY_S)) {
             this.shouldGoToNextView = true;
         }
     }
-    checkInButton(position) {
-        const x1 = this.buttonPosition.x - this.buttonImage.width / 2;
-        const x2 = x1 + this.buttonImage.width;
-        const y1 = this.buttonPosition.y - this.buttonImage.height / 2;
-        const y2 = y1 + this.buttonImage.height;
-        return position.x >= x1 && position.x <= x2 &&
-            position.y >= y1 && position.y <= y2;
-    }
     adjust(game) {
-        this.buttonPosition = this.center.add(new Vector(0, 229));
         if (this.shouldGoToNextView) {
-            game.switchViewTo('start');
+            game.switchViewTo('level');
         }
     }
     draw(ctx) {
-        this.writeTextToCanvas(ctx, "Hello World!", 140, this.center.x, 150);
-        this.writeTextToCanvas(ctx, "PRESS PLAY OR HIT 'S' TO START", 40, this.center.x, this.center.y - 135);
-        this.drawImage(ctx, this.buttonImage, this.buttonPosition.x, this.buttonPosition.y);
-        this.writeTextToCanvas(ctx, "Play", 20, this.buttonPosition.x, this.buttonPosition.y + 9, 'center', 'black');
+        this.writeTextToCanvas(ctx, "Just not Tetris", 140, this.center.x, 150);
+        this.writeTextToCanvas(ctx, "HIT 'S' TO START", 40, this.center.x, this.center.y - 135);
+        this.drawImage(ctx, this.buttonImage, this.center.x, this.center.y + 220);
+        this.writeTextToCanvas(ctx, "Play", 20, this.center.x, this.center.y + 229, 'center', 'black');
     }
 }
-class GameItem {
-    constructor(image, position, speed, angle, angularSpeed, offscreenBehaviour = GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW) {
-        this._image = image;
-        this._position = position;
-        this._speed = speed;
-        this._angle = angle;
-        this._angularSpeed = angularSpeed;
-        this._offscreenBehaviour = offscreenBehaviour;
+class TBlock extends Block {
+    get blockHeight() {
+        return 2;
     }
-    get collisionRadius() {
-        return this._image.height / 2;
-    }
-    get position() {
-        return this._position;
-    }
-    get speed() {
-        return this._speed;
-    }
-    move(canvas) {
-        this._position = new Vector(this._position.x + this._speed.x, this._position.y - this._speed.y);
-        switch (this._offscreenBehaviour) {
-            case GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW:
-                this.adjustOverflow(canvas.width, canvas.height);
-                break;
-            case GameItem.OFFSCREEN_BEHAVIOUR_BOUNCE:
-                break;
-            case GameItem.OFFSCREEN_BEHAVIOUR_DIE:
-                this.adjustDie(canvas.width, canvas.height);
-                break;
-        }
-        this._angle += this._angularSpeed;
-    }
-    adjustOverflow(maxX, maxY) {
-        if (this._position.x > maxX) {
-            this._position = new Vector(-this._image.width, this._position.y);
-        }
-        else if (this._position.x < -this._image.width) {
-            this._position = new Vector(maxX, this._position.y);
-        }
-        if (this._position.y > maxY + this._image.height / 2) {
-            this._position = new Vector(this._position.x, -this._image.height / 2);
-        }
-        else if (this._position.y < -this._image.height / 2) {
-            this._position = new Vector(this._position.x, maxY);
-        }
-    }
-    adjustDie(maxX, maxY) {
-        if (this._position.x + this._image.width > maxX || this._position.x < 0 ||
-            this._position.y + this._image.height / 2 > maxY ||
-            this._position.y - this._image.height / 2 < 0) {
-            this.die();
-        }
-    }
-    collidesWith(item) {
-        const distance = this.position.subtract(item.position).size;
-        const collision_distance = this.collisionRadius + item.collisionRadius;
-        return distance <= collision_distance;
-    }
-    die() {
-        this._state = GameItem.STATE_DEAD;
-    }
-    isDead() {
-        return this._state == GameItem.STATE_DEAD;
-    }
-    draw(ctx) {
-        ctx.save();
-        ctx.translate(this._position.x, this._position.y);
-        ctx.rotate(this._angle);
-        ctx.drawImage(this._image, -this._image.width / 2, -this._image.height / 2);
-        ctx.restore();
-    }
-    drawDebug(ctx) {
-        ctx.save();
-        ctx.strokeStyle = '#ffffb3';
-        ctx.beginPath();
-        this.drawCenterInfo(ctx);
-        this.drawCollisionBounds(ctx);
-        ctx.stroke();
-        ctx.restore();
-    }
-    drawCenterInfo(ctx) {
-        ctx.moveTo(this._position.x - 50, this._position.y);
-        ctx.lineTo(this._position.x + 50, this._position.y);
-        ctx.moveTo(this._position.x, this._position.y - 50);
-        ctx.lineTo(this._position.x, this._position.y + 50);
-        const text = `(${this._position.x.toPrecision(3)},${this._position.y.toPrecision(3)})`;
-        ctx.font = `10px courier`;
-        ctx.textAlign = 'left';
-        ctx.fillText(text, this._position.x + 10, this._position.y - 10);
-    }
-    drawCollisionBounds(ctx) {
-        ctx.moveTo(this._position.x, this._position.y);
-        ctx.arc(this._position.x, this._position.y, this._image.width / 2, 0, 2 * Math.PI, false);
+    get blockWidth() {
+        return 3;
     }
 }
-GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW = 0;
-GameItem.OFFSCREEN_BEHAVIOUR_BOUNCE = 2;
-GameItem.OFFSCREEN_BEHAVIOUR_DIE = 3;
-GameItem.STATE_ALIVE = 0;
-GameItem.STATE_DYING = 8;
-GameItem.STATE_DEAD = 9;
 class LoadView extends View {
     constructor(nextView) {
         super();
@@ -316,10 +452,6 @@ class Input {
         this.keyboard = new KeyListener();
         this.mouse = new MouseListener();
         this.window = new WindowListener();
-    }
-    onFrameStart() {
-        this.mouse.onFrameStart();
-        this.keyboard.onFrameStart();
     }
 }
 Input.MOUSE_NOTHING = 0;
@@ -377,70 +509,44 @@ Input.KEY_Y = 89;
 Input.KEY_Z = 90;
 class KeyListener {
     constructor() {
-        this.keyCodeStates = new Array();
-        this.keyCodeTyped = new Array();
-        this.prev = new Array();
-        window.addEventListener("keydown", (ev) => {
+        this.keyDown = (ev) => {
             this.keyCodeStates[ev.keyCode] = true;
-        });
-        window.addEventListener("keyup", (ev) => {
+        };
+        this.keyUp = (ev) => {
             this.keyCodeStates[ev.keyCode] = false;
-        });
-    }
-    onFrameStart() {
-        console.log(this.keyCodeStates);
-        this.keyCodeTyped = new Array();
-        this.keyCodeStates.forEach((val, key) => {
-            if (this.prev[key] != val && !this.keyCodeStates[key]) {
-                this.keyCodeTyped[key] = true;
-                this.prev[key] = val;
-            }
-        });
+        };
+        this.keyCodeStates = new Array();
+        window.addEventListener("keydown", this.keyDown);
+        window.addEventListener("keyup", this.keyUp);
     }
     isKeyDown(keyCode) {
         return this.keyCodeStates[keyCode] == true;
     }
-    isKeyTyped(keyCode) {
-        return this.keyCodeTyped[keyCode] == true;
-    }
 }
 class MouseListener {
     constructor() {
-        this._inWindow = true;
-        this._position = new Vector();
-        this._buttonDown = 0;
-        window.addEventListener("mousedown", (ev) => {
-            this._buttonDown = ev.buttons;
-        });
-        window.addEventListener("mouseup", (ev) => {
-            this._buttonDown = 0;
-        });
-        window.addEventListener("mousemove", (ev) => {
-            this._position = new Vector(ev.clientX, ev.clientY);
-        });
-        document.addEventListener("mouseenter", (ev) => {
-            this._inWindow = true;
-        });
-        document.addEventListener("mouseleave", (ev) => {
-            this._inWindow = false;
-        });
-    }
-    onFrameStart() {
-        this._buttonClicked = this._previousButtonDown != this._buttonDown
-            && this._buttonDown == Input.MOUSE_NOTHING;
-        this._previousButtonDown = this._buttonDown;
-    }
-    get inWindow() {
-        return this._inWindow;
-    }
-    get position() {
-        return this._position;
-    }
-    get buttonDown() {
-        return this._buttonDown;
-    }
-    get buttonClicked() {
-        return this._buttonClicked;
+        this.mouseDown = (ev) => {
+            this.buttonDown = ev.buttons;
+        };
+        this.mouseUp = (ev) => {
+            this.buttonDown = 0;
+        };
+        this.mouseMove = (ev) => {
+            this.position = new Vector(ev.clientX, ev.clientY);
+        };
+        this.mouseEnter = (ev) => {
+            this.inWindow = true;
+        };
+        this.mouseLeave = (ev) => {
+            this.inWindow = false;
+        };
+        this.position = new Vector();
+        this.inWindow = true;
+        window.addEventListener("mousedown", this.mouseDown);
+        window.addEventListener("mouseup", this.mouseUp);
+        window.addEventListener("mousemove", this.mouseMove);
+        document.addEventListener("mouseenter", this.mouseEnter);
+        document.addEventListener("mouseleave", this.mouseLeave);
     }
 }
 class WindowListener {
