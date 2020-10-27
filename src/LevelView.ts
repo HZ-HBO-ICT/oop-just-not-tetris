@@ -1,20 +1,15 @@
 /// <reference path="framework/View.ts"/>
 
 class LevelView extends View {
+    private playingField: PlayingField;
 
     private background: HTMLImageElement;
     private backgroundSize: Vector = new Vector(446, 700);
     private backgroundPosition: Vector;
 
-    private playingFieldSize: Vector = new Vector(308, 618);
-    private playingFieldPosition: Vector;
-
     private availableBlocks: string[] = ["I", "L", "R", "S", "T"];
 
-    private delay: number = 250;
-
-    private movingBlock: Block;
-    private blocksInPlay: Block[] = [];
+    private delay: number = 500;
 
     private lastMoveDown: number = performance.now();
     private lastMove: number = performance.now();
@@ -22,8 +17,7 @@ class LevelView extends View {
     public init(game: Game) {
         super.init(game);
         this.background = game.repo.getImage("background");
-
-        this.createNewMovingBlock(game);
+        this.playingField = new PlayingField(new Vector(7, 14), this.generateBlocks(10));
     }
 
     public listen(input: Input) {
@@ -32,11 +26,11 @@ class LevelView extends View {
         const timeSinceLastMove = performance.now() - this.lastMove;
         if (timeSinceLastMove > 200) {
             if (input.keyboard.isKeyDown(Input.KEY_LEFT)) {
-                this.movingBlock.moveLeft();
+                this.playingField.moveLeft();
                 this.lastMove = performance.now();
             }
             if (input.keyboard.isKeyDown(Input.KEY_RIGHT)) {
-                this.movingBlock.moveRight();
+                this.playingField.moveRight();
                 this.lastMove = performance.now();
             }
         }
@@ -44,30 +38,20 @@ class LevelView extends View {
 
     public draw(ctx: CanvasRenderingContext2D) {
         super.draw(ctx);
-        this.drawPlayingField(ctx);
-        this.blocksInPlay.forEach(block => {
-            block.draw(ctx)
-        });
-        this.movingBlock.updatePlayingField(this.playingFieldPosition, this.playingFieldSize)
-        this.movingBlock.draw(ctx);
+        
+        this.drawPlayingBackground(ctx);
+        this.playingField.draw(ctx);
     }
 
     public move(canvas: HTMLCanvasElement) {
-        super.move(canvas);
-        if (this.movingBlock.position !== null && performance.now() - this.lastMoveDown > this.delay) {
+        super.move(canvas);        
+        if (performance.now() - this.lastMoveDown > this.delay) {
             this.lastMoveDown = performance.now();
-            this.movingBlock.move(canvas);
-
-            const bottomField = this.playingFieldPosition.y + this.playingFieldSize.y / 2;
-            const bottomBlock = this.movingBlock.position.y + (this.movingBlock.blockHeight / 2) * 44;
-            if (bottomField === bottomBlock) {
-                this.blocksInPlay.push(this.movingBlock);
-                this.createNewMovingBlock(this.game);
-            }
+            this.playingField.moveDown();
         }
     }
 
-    private drawPlayingField(ctx: CanvasRenderingContext2D) {
+    private drawPlayingBackground(ctx: CanvasRenderingContext2D) {
         this.background.width = this.backgroundSize.x;
         this.background.height = this.backgroundSize.y;
         this.backgroundPosition = new Vector(this.center.x, this.background.height / 2 + 30)
@@ -76,35 +60,37 @@ class LevelView extends View {
             this.backgroundPosition.x - this.backgroundSize.x / 2,
             this.backgroundPosition.y - this.backgroundSize.y / 2);
 
-        this.playingFieldPosition = new Vector(
-            12 + backgroundTopLeft.x + this.playingFieldSize.x / 2,
-            68 + backgroundTopLeft.y + this.playingFieldSize.y / 2);
+        // Update the playing field object with information about its loction on the screen
+        this.playingField.topLeft = new Vector(
+            12 + backgroundTopLeft.x,
+            68 + backgroundTopLeft.y);
 
         this.drawImage(ctx, this.background, this.backgroundPosition.x, this.backgroundPosition.y);
     }
 
-    private getRandomBlock(): string {
-        return this.availableBlocks[Game.randomInteger(0, this.availableBlocks.length - 1)];
+    private generateBlocks(amount: number): Block[] {
+        const blocks: Block[] = [];
+        for(let i = 0; i < amount; i++) {
+            blocks.push(this.getRandomBlock());
+        }
+        return blocks;
     }
 
-    private createNewMovingBlock(game: Game) {
-        const randomBlock: string = this.getRandomBlock();
+    private getRandomBlock(): Block {
+        const randomBlock: string = this.availableBlocks[Game.randomInteger(0, this.availableBlocks.length - 1)];
         switch (randomBlock) {
             case "I" :
-                this.movingBlock = new Block(game.repo.getImage(randomBlock), 4, 1);
-                break;
+                return new IBlock(this.game.repo.getImage(randomBlock));
             case "L" :
-                this.movingBlock = new Block(game.repo.getImage(randomBlock), 3, 2);
-                break;
+                return new LBlock(this.game.repo.getImage(randomBlock));               
             case "R" :
-                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 2);
-                break;
+                return new RBlock(this.game.repo.getImage(randomBlock));               
             case "S" :
-                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 3);
-                break;
+                return new SBlock(this.game.repo.getImage(randomBlock));               
             case "T" :
-                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 3);
-                break;
+                return new TBlock(this.game.repo.getImage(randomBlock));         
+            default:
+                return null;      
         }
     }
 }

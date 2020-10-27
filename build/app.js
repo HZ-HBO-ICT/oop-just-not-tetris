@@ -1,147 +1,3 @@
-class GameItem {
-    constructor(image, position, speed, angle, angularSpeed, offscreenBehaviour = GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW) {
-        this._image = image;
-        this._position = position;
-        this._speed = speed;
-        this._angle = angle;
-        this._angularSpeed = angularSpeed;
-        this._offscreenBehaviour = offscreenBehaviour;
-    }
-    get collisionRadius() {
-        return this._image.height / 2;
-    }
-    get position() {
-        return this._position;
-    }
-    get speed() {
-        return this._speed;
-    }
-    move(canvas) {
-        this._position = new Vector(this._position.x + this._speed.x, this._position.y - this._speed.y);
-        switch (this._offscreenBehaviour) {
-            case GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW:
-                this.adjustOverflow(canvas.width, canvas.height);
-                break;
-            case GameItem.OFFSCREEN_BEHAVIOUR_BOUNCE:
-                break;
-            case GameItem.OFFSCREEN_BEHAVIOUR_DIE:
-                this.adjustDie(canvas.width, canvas.height);
-                break;
-        }
-        this._angle += this._angularSpeed;
-    }
-    adjustOverflow(maxX, maxY) {
-        if (this._position.x > maxX) {
-            this._position = new Vector(-this._image.width, this._position.y);
-        }
-        else if (this._position.x < -this._image.width) {
-            this._position = new Vector(maxX, this._position.y);
-        }
-        if (this._position.y > maxY + this._image.height / 2) {
-            this._position = new Vector(this._position.x, -this._image.height / 2);
-        }
-        else if (this._position.y < -this._image.height / 2) {
-            this._position = new Vector(this._position.x, maxY);
-        }
-    }
-    adjustDie(maxX, maxY) {
-        if (this._position.x + this._image.width > maxX || this._position.x < 0 ||
-            this._position.y + this._image.height / 2 > maxY ||
-            this._position.y - this._image.height / 2 < 0) {
-            this.die();
-        }
-    }
-    die() {
-        this._state = GameItem.STATE_DEAD;
-    }
-    isDead() {
-        return this._state == GameItem.STATE_DEAD;
-    }
-    draw(ctx) {
-        ctx.save();
-        ctx.translate(this._position.x, this._position.y);
-        ctx.rotate(this._angle);
-        ctx.drawImage(this._image, -this._image.width / 2, -this._image.height / 2);
-        ctx.restore();
-    }
-    drawDebug(ctx) {
-        ctx.save();
-        ctx.strokeStyle = '#ffffb3';
-        ctx.beginPath();
-        this.drawCenterInfo(ctx);
-        this.drawCollisionBounds(ctx);
-        ctx.stroke();
-        ctx.restore();
-    }
-    drawCenterInfo(ctx) {
-        ctx.moveTo(this._position.x - 50, this._position.y);
-        ctx.lineTo(this._position.x + 50, this._position.y);
-        ctx.moveTo(this._position.x, this._position.y - 50);
-        ctx.lineTo(this._position.x, this._position.y + 50);
-        const text = `(${this._position.x.toPrecision(3)},${this._position.y.toPrecision(3)})`;
-        ctx.font = `10px courier`;
-        ctx.textAlign = 'left';
-        ctx.fillText(text, this._position.x + 10, this._position.y - 10);
-    }
-    drawCollisionBounds(ctx) {
-        ctx.moveTo(this._position.x, this._position.y);
-        ctx.arc(this._position.x, this._position.y, this._image.width / 2, 0, 2 * Math.PI, false);
-    }
-}
-GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW = 0;
-GameItem.OFFSCREEN_BEHAVIOUR_BOUNCE = 2;
-GameItem.OFFSCREEN_BEHAVIOUR_DIE = 3;
-GameItem.STATE_ALIVE = 0;
-GameItem.STATE_DYING = 8;
-GameItem.STATE_DEAD = 9;
-class Block extends GameItem {
-    constructor(image, blockHeight, blockWidth) {
-        super(image, null, new Vector(0, -44), 0, 0);
-        this._blockHeight = blockHeight;
-        this._blockWidth = blockWidth;
-    }
-    get blockHeight() {
-        return this._blockHeight;
-    }
-    get blockWidth() {
-        return this._blockWidth;
-    }
-    moveLeft() {
-        const leftSidePlayingField = this.playingFieldPosition.x - this.playingFieldSize.x / 2;
-        const leftSideBlock = this.position.x - (this.blockWidth / 2) * 44;
-        if (leftSideBlock - 44 >= leftSidePlayingField) {
-            this._position = new Vector(this._position.x - 44, this._position.y);
-        }
-    }
-    moveRight() {
-        const rightSidePlayingField = this.playingFieldPosition.x + this.playingFieldSize.x / 2;
-        const rightSideBlock = this.position.x + (this.blockWidth / 2) * 44;
-        console.log(rightSidePlayingField, rightSideBlock);
-        if (rightSideBlock + 44 <= rightSidePlayingField) {
-            this._position = new Vector(this._position.x + 44, this._position.y);
-        }
-    }
-    updatePlayingField(playingFieldPosition, playingFieldSize) {
-        this.playingFieldPosition = playingFieldPosition;
-        this.playingFieldSize = playingFieldSize;
-    }
-    draw(ctx) {
-        if (this.position === null) {
-            const leftSide = this.playingFieldPosition.x - this.playingFieldSize.x / 2;
-            let initialXPosition = leftSide + 3 * 44;
-            if (this.blockWidth % 2 !== 0) {
-                initialXPosition += 22;
-            }
-            const bottom = this.playingFieldPosition.y + this.playingFieldSize.y / 2;
-            let initialYPosition = bottom - 13 * 44;
-            if (this.blockHeight % 2 !== 0) {
-                initialYPosition += 22;
-            }
-            this._position = new Vector(initialXPosition, initialYPosition);
-        }
-        super.draw(ctx);
-    }
-}
 class View {
     constructor() {
         this.center = new Vector();
@@ -210,84 +66,211 @@ class LevelView extends View {
     constructor() {
         super(...arguments);
         this.backgroundSize = new Vector(446, 700);
-        this.playingFieldSize = new Vector(308, 618);
         this.availableBlocks = ["I", "L", "R", "S", "T"];
-        this.delay = 250;
-        this.blocksInPlay = [];
+        this.delay = 500;
         this.lastMoveDown = performance.now();
         this.lastMove = performance.now();
     }
     init(game) {
         super.init(game);
         this.background = game.repo.getImage("background");
-        this.createNewMovingBlock(game);
+        this.playingField = new PlayingField(new Vector(7, 14), this.generateBlocks(10));
     }
     listen(input) {
         super.listen(input);
         const timeSinceLastMove = performance.now() - this.lastMove;
         if (timeSinceLastMove > 200) {
             if (input.keyboard.isKeyDown(Input.KEY_LEFT)) {
-                this.movingBlock.moveLeft();
+                this.playingField.moveLeft();
                 this.lastMove = performance.now();
             }
             if (input.keyboard.isKeyDown(Input.KEY_RIGHT)) {
-                this.movingBlock.moveRight();
+                this.playingField.moveRight();
                 this.lastMove = performance.now();
             }
         }
     }
     draw(ctx) {
         super.draw(ctx);
-        this.drawPlayingField(ctx);
-        this.blocksInPlay.forEach(block => {
-            block.draw(ctx);
-        });
-        this.movingBlock.updatePlayingField(this.playingFieldPosition, this.playingFieldSize);
-        this.movingBlock.draw(ctx);
+        this.drawPlayingBackground(ctx);
+        this.playingField.draw(ctx);
     }
     move(canvas) {
         super.move(canvas);
-        if (this.movingBlock.position !== null && performance.now() - this.lastMoveDown > this.delay) {
+        if (performance.now() - this.lastMoveDown > this.delay) {
             this.lastMoveDown = performance.now();
-            this.movingBlock.move(canvas);
-            const bottomField = this.playingFieldPosition.y + this.playingFieldSize.y / 2;
-            const bottomBlock = this.movingBlock.position.y + (this.movingBlock.blockHeight / 2) * 44;
-            if (bottomField === bottomBlock) {
-                this.blocksInPlay.push(this.movingBlock);
-                this.createNewMovingBlock(this.game);
-            }
+            this.playingField.moveDown();
         }
     }
-    drawPlayingField(ctx) {
+    drawPlayingBackground(ctx) {
         this.background.width = this.backgroundSize.x;
         this.background.height = this.backgroundSize.y;
         this.backgroundPosition = new Vector(this.center.x, this.background.height / 2 + 30);
         const backgroundTopLeft = new Vector(this.backgroundPosition.x - this.backgroundSize.x / 2, this.backgroundPosition.y - this.backgroundSize.y / 2);
-        this.playingFieldPosition = new Vector(12 + backgroundTopLeft.x + this.playingFieldSize.x / 2, 68 + backgroundTopLeft.y + this.playingFieldSize.y / 2);
+        this.playingField.topLeft = new Vector(12 + backgroundTopLeft.x, 68 + backgroundTopLeft.y);
         this.drawImage(ctx, this.background, this.backgroundPosition.x, this.backgroundPosition.y);
     }
-    getRandomBlock() {
-        return this.availableBlocks[Game.randomInteger(0, this.availableBlocks.length - 1)];
+    generateBlocks(amount) {
+        const blocks = [];
+        for (let i = 0; i < amount; i++) {
+            blocks.push(this.getRandomBlock());
+        }
+        return blocks;
     }
-    createNewMovingBlock(game) {
-        const randomBlock = this.getRandomBlock();
+    getRandomBlock() {
+        const randomBlock = this.availableBlocks[Game.randomInteger(0, this.availableBlocks.length - 1)];
         switch (randomBlock) {
             case "I":
-                this.movingBlock = new Block(game.repo.getImage(randomBlock), 4, 1);
-                break;
+                return new IBlock(this.game.repo.getImage(randomBlock));
             case "L":
-                this.movingBlock = new Block(game.repo.getImage(randomBlock), 3, 2);
-                break;
+                return new LBlock(this.game.repo.getImage(randomBlock));
             case "R":
-                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 2);
-                break;
+                return new RBlock(this.game.repo.getImage(randomBlock));
             case "S":
-                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 3);
-                break;
+                return new SBlock(this.game.repo.getImage(randomBlock));
             case "T":
-                this.movingBlock = new Block(game.repo.getImage(randomBlock), 2, 3);
-                break;
+                return new TBlock(this.game.repo.getImage(randomBlock));
+            default:
+                return null;
         }
+    }
+}
+class PlayingField {
+    constructor(playingFieldSize, blocks) {
+        this._playingField = [];
+        this._playingFIeldSizePixels = new Vector(308, 618);
+        this._squareSize = 44;
+        this._playingFieldSize = playingFieldSize;
+        this._leftOverBlocks = blocks;
+        for (let i = 0; i < this._playingFieldSize.y; i++) {
+            this._playingField[i] = [];
+        }
+        this.newMovingBlock();
+    }
+    moveDown() {
+        console.log("Moving block down on playing field");
+        const currentPositions = this._movingBlock.currentPositions;
+        const newPositions = currentPositions.map((currentPosition) => {
+            return currentPosition.add(new Vector(0, 1));
+        });
+        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
+        if (canMove) {
+            currentPositions.forEach((currentPosition) => {
+                this._playingField[currentPosition.y][currentPosition.x] = undefined;
+            });
+            newPositions.forEach((newPosition) => {
+                this._playingField[newPosition.y][newPosition.x] = this._movingBlock;
+            });
+            this._movingBlock.currentPositions = newPositions;
+        }
+        else {
+            this.newMovingBlock();
+        }
+        console.log(this._playingField);
+    }
+    moveLeft() {
+        console.log("Moving block left on playing field");
+        const currentPositions = this._movingBlock.currentPositions;
+        const newPositions = currentPositions.map((currentPosition) => {
+            return currentPosition.add(new Vector(-1, 0));
+        });
+        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
+        if (canMove) {
+            currentPositions.forEach((currentPosition) => {
+                this._playingField[currentPosition.y][currentPosition.x] = undefined;
+            });
+            newPositions.forEach((newPosition) => {
+                this._playingField[newPosition.y][newPosition.x] = this._movingBlock;
+            });
+            this._movingBlock.currentPositions = newPositions;
+        }
+    }
+    moveRight() {
+        console.log("Moving block right on playing field");
+        const currentPositions = this._movingBlock.currentPositions;
+        const newPositions = currentPositions.map((currentPosition) => {
+            return currentPosition.add(new Vector(1, 0));
+        });
+        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
+        if (canMove) {
+            currentPositions.forEach((currentPosition) => {
+                this._playingField[currentPosition.y][currentPosition.x] = undefined;
+            });
+            newPositions.forEach((newPosition) => {
+                this._playingField[newPosition.y][newPosition.x] = this._movingBlock;
+            });
+            this._movingBlock.currentPositions = newPositions;
+        }
+    }
+    rotate() {
+        console.log("Rotating block on playing field");
+    }
+    draw(ctx) {
+        const drawnBlocks = [];
+        for (let i = 0; i < this._playingField.length; i++) {
+            const row = this._playingField[i];
+            for (let j = 0; j < row.length; j++) {
+                if (row[j] != undefined) {
+                    const block = row[j];
+                    if (drawnBlocks.indexOf(block) == -1) {
+                        const currentBlockPositions = block.currentPositions;
+                        const leftMostX = currentBlockPositions.map((vector) => {
+                            return vector.x;
+                        }).reduce((smallest, current) => {
+                            return (current < smallest ? current : smallest);
+                        });
+                        const leftMostY = currentBlockPositions.map((vector) => {
+                            return vector.y;
+                        }).reduce((smallest, current) => {
+                            return (current < smallest ? current : smallest);
+                        });
+                        drawnBlocks.push(block);
+                        const newTopLeft = new Vector(leftMostX * this._squareSize + this._topLeft.x, leftMostY * this._squareSize + this._topLeft.y);
+                        block.updatePosition(newTopLeft);
+                        block.draw(ctx);
+                    }
+                }
+            }
+        }
+    }
+    set topLeft(topLeft) {
+        this._topLeft = topLeft;
+    }
+    get playingFieldSizePixels() {
+        return this._playingFIeldSizePixels;
+    }
+    newMovingBlock() {
+        console.log("Creating a new moving block");
+        this._movingBlock = this._leftOverBlocks.pop();
+        const requiredSquares = this._movingBlock.initialSquares;
+        const playingFieldCenter = Math.floor(this._playingFieldSize.x / 2);
+        const leftMostSquare = playingFieldCenter - Math.floor(requiredSquares[0].length / 2);
+        for (let i = 0; i < requiredSquares.length; i++) {
+            const row = requiredSquares[i];
+            for (let j = 0; j < row.length; j++) {
+                if (row[j]) {
+                    this._playingField[i][j + leftMostSquare] = this._movingBlock;
+                    this._movingBlock.currentPositions.push(new Vector(j + leftMostSquare, i));
+                }
+            }
+        }
+    }
+    canMoveToNewPositions(newPositions, block) {
+        for (let i = 0; i < newPositions.length; i++) {
+            const newPosition = newPositions[i];
+            if (newPosition.y >= this._playingFieldSize.y) {
+                return false;
+            }
+            if (newPosition.x < 0 || newPosition.x >= this._playingFieldSize.x) {
+                return false;
+            }
+            const currentValue = this._playingField[newPosition.y][newPosition.x];
+            if (currentValue != undefined &&
+                currentValue != block) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 class StartView extends View {
@@ -396,6 +379,263 @@ let game = null;
 window.addEventListener('load', function () {
     game = new Tetris(document.getElementById('canvas'));
 });
+class GameItem {
+    constructor(image, position, speed, angle, angularSpeed, offscreenBehaviour = GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW) {
+        this._image = image;
+        this._position = position;
+        this._speed = speed;
+        this._angle = angle;
+        this._angularSpeed = angularSpeed;
+        this._offscreenBehaviour = offscreenBehaviour;
+    }
+    get collisionRadius() {
+        return this._image.height / 2;
+    }
+    get position() {
+        return this._position;
+    }
+    get speed() {
+        return this._speed;
+    }
+    move(canvas) {
+        this._position = new Vector(this._position.x + this._speed.x, this._position.y - this._speed.y);
+        switch (this._offscreenBehaviour) {
+            case GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW:
+                this.adjustOverflow(canvas.width, canvas.height);
+                break;
+            case GameItem.OFFSCREEN_BEHAVIOUR_BOUNCE:
+                break;
+            case GameItem.OFFSCREEN_BEHAVIOUR_DIE:
+                this.adjustDie(canvas.width, canvas.height);
+                break;
+        }
+        this._angle += this._angularSpeed;
+    }
+    adjustOverflow(maxX, maxY) {
+        if (this._position.x > maxX) {
+            this._position = new Vector(-this._image.width, this._position.y);
+        }
+        else if (this._position.x < -this._image.width) {
+            this._position = new Vector(maxX, this._position.y);
+        }
+        if (this._position.y > maxY + this._image.height / 2) {
+            this._position = new Vector(this._position.x, -this._image.height / 2);
+        }
+        else if (this._position.y < -this._image.height / 2) {
+            this._position = new Vector(this._position.x, maxY);
+        }
+    }
+    adjustDie(maxX, maxY) {
+        if (this._position.x + this._image.width > maxX || this._position.x < 0 ||
+            this._position.y + this._image.height / 2 > maxY ||
+            this._position.y - this._image.height / 2 < 0) {
+            this.die();
+        }
+    }
+    die() {
+        this._state = GameItem.STATE_DEAD;
+    }
+    isDead() {
+        return this._state == GameItem.STATE_DEAD;
+    }
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this._position.x, this._position.y);
+        ctx.rotate(this._angle);
+        ctx.drawImage(this._image, -this._image.width / 2, -this._image.height / 2);
+        ctx.restore();
+    }
+    drawDebug(ctx) {
+        ctx.save();
+        ctx.strokeStyle = '#ffffb3';
+        ctx.beginPath();
+        this.drawCenterInfo(ctx);
+        this.drawCollisionBounds(ctx);
+        ctx.stroke();
+        ctx.restore();
+    }
+    drawCenterInfo(ctx) {
+        ctx.moveTo(this._position.x - 50, this._position.y);
+        ctx.lineTo(this._position.x + 50, this._position.y);
+        ctx.moveTo(this._position.x, this._position.y - 50);
+        ctx.lineTo(this._position.x, this._position.y + 50);
+        const text = `(${this._position.x.toPrecision(3)},${this._position.y.toPrecision(3)})`;
+        ctx.font = `10px courier`;
+        ctx.textAlign = 'left';
+        ctx.fillText(text, this._position.x + 10, this._position.y - 10);
+    }
+    drawCollisionBounds(ctx) {
+        ctx.moveTo(this._position.x, this._position.y);
+        ctx.arc(this._position.x, this._position.y, this._image.width / 2, 0, 2 * Math.PI, false);
+    }
+}
+GameItem.OFFSCREEN_BEHAVIOUR_OVERFLOW = 0;
+GameItem.OFFSCREEN_BEHAVIOUR_BOUNCE = 2;
+GameItem.OFFSCREEN_BEHAVIOUR_DIE = 3;
+GameItem.STATE_ALIVE = 0;
+GameItem.STATE_DYING = 8;
+GameItem.STATE_DEAD = 9;
+class Block extends GameItem {
+    constructor(image) {
+        super(image, null, null, 0, 0);
+        this._currentPossitions = [];
+        this._orientation = Orientation.UP;
+    }
+    get currentPositions() {
+        return this._currentPossitions;
+    }
+    set currentPositions(newPositions) {
+        this._currentPossitions = newPositions;
+    }
+    updatePosition(newTopLeft) {
+        this._position = new Vector(newTopLeft.x + this._image.width / 2, newTopLeft.y + this._image.height / 2);
+    }
+    nextOrientation() {
+        switch (this._orientation) {
+            case Orientation.UP:
+                return Orientation.RIGHT;
+            case Orientation.RIGHT:
+                return Orientation.DOWN;
+            case Orientation.DOWN:
+                return Orientation.LEFT;
+            case Orientation.LEFT:
+                return Orientation.UP;
+        }
+    }
+}
+class IBlock extends Block {
+    constructor() {
+        super(...arguments);
+        this._up_down = [[true],
+            [true],
+            [true],
+            [true]];
+        this._left_right = [[true, true, true, true]];
+    }
+    get initialSquares() {
+        return this._up_down;
+    }
+    prepareRotate() {
+        switch (this.nextOrientation()) {
+            case Orientation.UP:
+            case Orientation.DOWN:
+                return this._up_down;
+            case Orientation.LEFT:
+            case Orientation.RIGHT:
+                return this._left_right;
+        }
+    }
+}
+class LBlock extends Block {
+    constructor() {
+        super(...arguments);
+        this._up = [[true, false],
+            [true, false],
+            [true, true]];
+        this._down = [[true, true],
+            [true, false],
+            [true, false]];
+        this._left = [[true, true, true],
+            [false, false, true]];
+        this._right = [[true, true, true],
+            [true, false, false]];
+    }
+    get initialSquares() {
+        return this._up;
+    }
+    prepareRotate() {
+        switch (this.nextOrientation()) {
+            case Orientation.UP:
+                return this._up;
+            case Orientation.DOWN:
+                return this._down;
+            case Orientation.LEFT:
+                return this._left;
+            case Orientation.RIGHT:
+                return this._right;
+        }
+    }
+}
+var Orientation;
+(function (Orientation) {
+    Orientation[Orientation["UP"] = 0] = "UP";
+    Orientation[Orientation["DOWN"] = 1] = "DOWN";
+    Orientation[Orientation["LEFT"] = 2] = "LEFT";
+    Orientation[Orientation["RIGHT"] = 3] = "RIGHT";
+})(Orientation || (Orientation = {}));
+class RBlock extends Block {
+    get initialSquares() {
+        return [[true, true],
+            [true, true]];
+    }
+    prepareRotate() {
+        return [[true, true],
+            [true, true]];
+    }
+}
+class SBlock extends Block {
+    constructor() {
+        super(...arguments);
+        this._up = [[false, true, true],
+            [true, true, false]];
+        this._down = [[true, true, false],
+            [false, true, true]];
+        this._left = [[false, true],
+            [true, true],
+            [true, false]];
+        this._right = [[true, false],
+            [true, true],
+            [false, true]];
+    }
+    get initialSquares() {
+        return this._up;
+    }
+    prepareRotate() {
+        switch (this.nextOrientation()) {
+            case Orientation.UP:
+                return this._up;
+            case Orientation.DOWN:
+                return this._down;
+            case Orientation.LEFT:
+                return this._left;
+            case Orientation.RIGHT:
+                return this._right;
+        }
+        ;
+    }
+}
+class TBlock extends Block {
+    constructor() {
+        super(...arguments);
+        this._up = [[false, true, false],
+            [true, true, true]];
+        this._down = [[true, true, true],
+            [false, true, false]];
+        this._left = [[false, true],
+            [true, true],
+            [false, true]];
+        this._right = [[true, false],
+            [true, true],
+            [true, false]];
+    }
+    get initialSquares() {
+        return [[false, true, false],
+            [true, true, true]];
+    }
+    prepareRotate() {
+        switch (this.nextOrientation()) {
+            case Orientation.UP:
+                return this._up;
+            case Orientation.DOWN:
+                return this._down;
+            case Orientation.LEFT:
+                return this._left;
+            case Orientation.RIGHT:
+                return this._right;
+        }
+        ;
+    }
+}
 class LoadView extends View {
     constructor(nextView) {
         super();
