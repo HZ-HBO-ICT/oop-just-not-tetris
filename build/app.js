@@ -268,9 +268,8 @@ class StartView extends View {
         }
     }
     draw(ctx) {
-        this.writeTextToCanvas(ctx, "Just not Tetris", 140, this.center.x, 150);
-        this.writeTextToCanvas(ctx, "HIT 'S' TO START", 40, this.center.x, this.center.y - 135);
-        this.writeTextToCanvas(ctx, "Play", 20, this.center.x, this.center.y + 229, "center", "black");
+        this.writeTextToCanvas(ctx, "Just not Tetris", 140, this.center.x, 150, "center", "black");
+        this.writeTextToCanvas(ctx, "HIT 'S' TO START", 40, this.center.x, this.center.y - 135, "center", "black");
     }
 }
 class Game {
@@ -550,7 +549,7 @@ class LoadView extends View {
         }
     }
     draw(ctx) {
-        this.writeTextToCanvas(ctx, "Loading...", 80, this.center.x, this.center.y);
+        this.writeTextToCanvas(ctx, "Loading...", 80, this.center.x, this.center.y, "center", "black");
     }
 }
 LoadView.MINIMUM_FRAME_TIME = 1000;

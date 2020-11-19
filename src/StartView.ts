@@ -30,22 +30,22 @@ class StartView extends View {
   }
 
   public draw(ctx: CanvasRenderingContext2D) {
-    this.writeTextToCanvas(ctx, "Just not Tetris", 140, this.center.x, 150);
+    this.writeTextToCanvas(
+      ctx,
+      "Just not Tetris",
+      140,
+      this.center.x,
+      150,
+      "center",
+      "black"
+    );
 
     this.writeTextToCanvas(
       ctx,
       "HIT 'S' TO START",
       40,
       this.center.x,
-      this.center.y - 135
-    );
-
-    this.writeTextToCanvas(
-      ctx,
-      "Play",
-      20,
-      this.center.x,
-      this.center.y + 229,
+      this.center.y - 135,
       "center",
       "black"
     );
