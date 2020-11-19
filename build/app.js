@@ -88,6 +88,10 @@ class LevelView extends View {
                 this.playingField.moveRight();
                 this.lastMove = performance.now();
             }
+            if (input.keyboard.isKeyDown(Input.KEY_UP)) {
+                this.playingField.rotate();
+                this.lastMove = performance.now();
+            }
         }
     }
     draw(ctx) {
@@ -204,6 +208,29 @@ class PlayingField {
     }
     rotate() {
         console.log("Rotating block on playing field");
+        const squaresAfterRotate = this._movingBlock.prepareRotate();
+        const topLeftPosition = this.calculateTopLeftPosition(this._movingBlock.currentPositions);
+        const newPositions = [];
+        for (let rowIndex = 0; rowIndex < squaresAfterRotate.length; rowIndex++) {
+            const row = squaresAfterRotate[rowIndex];
+            for (let columnIndex = 0; columnIndex < row.length; columnIndex++) {
+                if (row[columnIndex]) {
+                    newPositions.push(new Vector(columnIndex + topLeftPosition.x, rowIndex + topLeftPosition.y));
+                }
+            }
+        }
+        console.log(newPositions);
+        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
+        if (canMove) {
+            this._movingBlock.rotate();
+            this._movingBlock.currentPositions.forEach((currentPosition) => {
+                this._playingField[currentPosition.y][currentPosition.x] = undefined;
+            });
+            newPositions.forEach((newPosition) => {
+                this._playingField[newPosition.y][newPosition.x] = this._movingBlock;
+            });
+            this._movingBlock.currentPositions = newPositions;
+        }
     }
     draw(ctx) {
         const drawnBlocks = [];
@@ -213,25 +240,28 @@ class PlayingField {
                 if (row[j] != undefined) {
                     const block = row[j];
                     if (drawnBlocks.indexOf(block) == -1) {
-                        const currentBlockPositions = block.currentPositions;
-                        const leftMostX = currentBlockPositions.map((vector) => {
-                            return vector.x;
-                        }).reduce((smallest, current) => {
-                            return (current < smallest ? current : smallest);
-                        });
-                        const leftMostY = currentBlockPositions.map((vector) => {
-                            return vector.y;
-                        }).reduce((smallest, current) => {
-                            return (current < smallest ? current : smallest);
-                        });
+                        const topLeft = this.calculateTopLeftPosition(block.currentPositions);
                         drawnBlocks.push(block);
-                        const newTopLeft = new Vector(leftMostX * this._squareSize + this._topLeft.x, leftMostY * this._squareSize + this._topLeft.y);
+                        const newTopLeft = new Vector(topLeft.x * this._squareSize + this._topLeft.x, topLeft.y * this._squareSize + this._topLeft.y);
                         block.updatePosition(newTopLeft);
                         block.draw(ctx);
                     }
                 }
             }
         }
+    }
+    calculateTopLeftPosition(positions) {
+        const leftMostX = positions.map((vector) => {
+            return vector.x;
+        }).reduce((smallest, current) => {
+            return (current < smallest ? current : smallest);
+        });
+        const leftMostY = positions.map((vector) => {
+            return vector.y;
+        }).reduce((smallest, current) => {
+            return (current < smallest ? current : smallest);
+        });
+        return new Vector(leftMostX, leftMostY);
     }
     set topLeft(topLeft) {
         this._topLeft = topLeft;
@@ -486,6 +516,25 @@ class Block extends GameItem {
     }
     set currentPositions(newPositions) {
         this._currentPossitions = newPositions;
+    }
+    rotate() {
+        this._orientation = this.nextOrientation();
+        let newAngleDegrees = 0;
+        switch (this._orientation) {
+            case Orientation.UP:
+                newAngleDegrees = 0;
+                break;
+            case Orientation.RIGHT:
+                newAngleDegrees = 90;
+                break;
+            case Orientation.DOWN:
+                newAngleDegrees = 180;
+                break;
+            case Orientation.LEFT:
+                newAngleDegrees = 270;
+                break;
+        }
+        this._angle = newAngleDegrees * (Math.PI / 180);
     }
     updatePosition(newTopLeft) {
         this._position = new Vector(newTopLeft.x + this._image.width / 2, newTopLeft.y + this._image.height / 2);

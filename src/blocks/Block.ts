@@ -21,6 +21,26 @@ abstract class Block extends GameItem {
 
     public abstract prepareRotate(): boolean[][];
 
+    public rotate() {
+        this._orientation = this.nextOrientation();
+        let newAngleDegrees = 0;
+        switch(this._orientation) {
+            case Orientation.UP:
+                newAngleDegrees = 0;
+                break;
+            case Orientation.RIGHT:
+                newAngleDegrees = 90;
+                break;
+            case Orientation.DOWN:
+                newAngleDegrees = 180;
+                break;
+            case Orientation.LEFT:
+                newAngleDegrees = 270;
+                break;
+        }
+        this._angle = newAngleDegrees * (Math.PI / 180);
+    }
+    
     public updatePosition(newTopLeft: Vector) {        
         this._position = new Vector(newTopLeft.x + this._image.width / 2, newTopLeft.y + this._image.height / 2);        
     }

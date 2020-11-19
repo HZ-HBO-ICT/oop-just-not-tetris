@@ -33,6 +33,10 @@ class LevelView extends View {
                 this.playingField.moveRight();
                 this.lastMove = performance.now();
             }
+            if (input.keyboard.isKeyDown(Input.KEY_UP)) {
+                this.playingField.rotate();
+                this.lastMove = performance.now();
+            }
         }
     }
 
