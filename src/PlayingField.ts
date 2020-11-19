@@ -1,3 +1,6 @@
+/**
+ * The playing field, responsible for managing the location and colisions of the Tetris blocks
+ */
 class PlayingField {
 
     private _topLeft: Vector;
@@ -21,62 +24,56 @@ class PlayingField {
         this.newMovingBlock();
     }
 
+    /**
+     * Move the one moving block down on the playing field
+     */
     public moveDown() {
         console.log("Moving block down on playing field");
-        const currentPositions: Vector[] = this._movingBlock.currentPositions;
-
-        const newPositions = currentPositions.map((currentPosition) => {
-            return currentPosition.add(new Vector(0,1));
-        });
-
-        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
-
-        if(canMove) {
-            currentPositions.forEach((currentPosition) => {
-                this._playingField[currentPosition.y][currentPosition.x] = undefined;
-            });
-            newPositions.forEach((newPosition) => {
-                this._playingField[newPosition.y][newPosition.x] = this._movingBlock;
-            });
-            this._movingBlock.currentPositions = newPositions;
-        } else {
+                
+        // Try to move the block. When not possible, the block has landed and a new moving block will be added to the field
+        if(!this.move(new Vector(0,1))) {
             this.newMovingBlock();
-        }
+        } 
 
         console.log(this._playingField);
     }
 
+    /**
+     * Move the one moving block left on the playing field
+     */
     public moveLeft() {
         console.log("Moving block left on playing field");
 
-        const currentPositions: Vector[] = this._movingBlock.currentPositions;
-        const newPositions = currentPositions.map((currentPosition) => {
-            return currentPosition.add(new Vector(-1,0));
-        });
-
-        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
-
-        if(canMove) {
-            currentPositions.forEach((currentPosition) => {
-                this._playingField[currentPosition.y][currentPosition.x] = undefined;
-            });
-            newPositions.forEach((newPosition) => {
-                this._playingField[newPosition.y][newPosition.x] = this._movingBlock;
-            });
-            this._movingBlock.currentPositions = newPositions;
-        }
+        this.move(new Vector(-1,0));
     }
 
+    /**
+     * Move the one moving block right on the playing field
+     */
     public moveRight() {
         console.log("Moving block right on playing field");
 
+        this.move(new Vector(1,0));
+    }
+
+    /**
+     * Move the block in the provided direction.
+     * 
+     * @param translation The vector to add to the current position. Example (new Vector(0,1)) would move the block down
+     */
+    private move(translation: Vector): boolean {
+        // Get the current positions (indexes) from the moving block
         const currentPositions: Vector[] = this._movingBlock.currentPositions;
+        // Create the new positions (indexes) by moving every index according to the provided translation
         const newPositions = currentPositions.map((currentPosition) => {
-            return currentPosition.add(new Vector(1,0));
+            return currentPosition.add(translation);
         });
 
-        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
+        // Check for collisions
+        const canMove = this.canMoveToNewPositions(newPositions);
 
+        // If there are no collisions, remove the block from the playing field using the current positions
+        // And replace it on its new positions.
         if(canMove) {
             currentPositions.forEach((currentPosition) => {
                 this._playingField[currentPosition.y][currentPosition.x] = undefined;
@@ -86,47 +83,24 @@ class PlayingField {
             });
             this._movingBlock.currentPositions = newPositions;
         }
+
+        // Return if the block has moved
+        return canMove;
     }
 
-    public rotate() {
-        console.log("Rotating block on playing field");
-
-        const squaresAfterRotate = this._movingBlock.prepareRotate();
-        const topLeftPosition = this.calculateTopLeftPosition(this._movingBlock.currentPositions);
-
-        const newPositions: Vector[] = []
-        for(let rowIndex = 0; rowIndex < squaresAfterRotate.length; rowIndex ++) {
-            const row = squaresAfterRotate[rowIndex];
-            for(let columnIndex = 0; columnIndex < row.length; columnIndex++) {
-                if(row[columnIndex]) {
-                    newPositions.push(new Vector(columnIndex + topLeftPosition.x, rowIndex + topLeftPosition.y));
-                }
-            }
-        }
-
-        console.log(newPositions);
-        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
-
-        if(canMove) {
-            this._movingBlock.rotate();
-            this._movingBlock.currentPositions.forEach((currentPosition) => {
-                this._playingField[currentPosition.y][currentPosition.x] = undefined;
-            });
-            newPositions.forEach((newPosition) => {
-                this._playingField[newPosition.y][newPosition.x] = this._movingBlock;
-            });
-            this._movingBlock.currentPositions = newPositions;
-        }
-
-    }
-
+    /**
+     * Draw the blocks on the playing field
+     * For every block on the field draw it once. Calculate its position in pixels from the index it is on in the playing field
+     * 
+     * @param ctx The context to draw on
+     */
     public draw(ctx: CanvasRenderingContext2D) {
         const drawnBlocks: Block[] = [];
-        for(let i = 0; i < this._playingField.length; i++) {
-            const row = this._playingField[i];
-            for(let j = 0; j < row.length; j++) {
-                if(row[j] != undefined) {
-                    const block = row[j];
+        for(let rowIndex = 0; rowIndex < this._playingField.length; rowIndex++) {
+            const row = this._playingField[rowIndex];
+            for(let columnIndex = 0; columnIndex < row.length; columnIndex++) {
+                if(row[columnIndex] != undefined) {
+                    const block = row[columnIndex];
                     if(drawnBlocks.indexOf(block) == -1) {
                         const topLeft = this.calculateTopLeftPosition(block.currentPositions)
                         
@@ -141,12 +115,20 @@ class PlayingField {
         }        
     }
 
+    /**
+     * From an array of vectors, calculate the top-left most Vector
+     * 
+     * @param positions 
+     */
     private calculateTopLeftPosition(positions: Vector[]): Vector {
+        // First get all the X positions, than reduce it to find the smallest X value
         const leftMostX = positions.map((vector) => {
             return vector.x;
         }).reduce((smallest, current) => {
             return (current < smallest ? current : smallest);
         });
+
+        // First get all the Y positions, than reduce it to find the smallest Y value
         const leftMostY = positions.map((vector) => {
             return vector.y;
         }).reduce((smallest, current) => {
@@ -156,32 +138,49 @@ class PlayingField {
         return new Vector(leftMostX, leftMostY);
     }
 
+    /**
+     * Set the top-left (in pixels) Of the playing field
+     * 
+     * @param topLeft The top-left position in pixles
+     */
     public set topLeft(topLeft: Vector) {
         this._topLeft = topLeft;
     }
 
+    /**
+     * Get the size of the playing field in pixels
+     */
     public get playingFieldSizePixels(): Vector {
         return this._playingFIeldSizePixels;
     }
 
+    /**
+     * Get a new moving block for the playing field
+     */
     private newMovingBlock() {
         console.log("Creating a new moving block");
+        // Pop a block from the leftover blocks
         this._movingBlock = this._leftOverBlocks.pop();
+
+        // Place it on the playing field at the top
         const requiredSquares  = this._movingBlock.initialSquares;
         const playingFieldCenter = Math.floor(this._playingFieldSize.x / 2);
         const leftMostSquare = playingFieldCenter - Math.floor(requiredSquares[0].length / 2);
-        for(let i = 0; i < requiredSquares.length; i++) {
-            const row = requiredSquares[i];
-            for(let j = 0; j < row.length; j++) {
-                if(row[j]) {
-                    this._playingField[i][j + leftMostSquare] = this._movingBlock;
-                    this._movingBlock.currentPositions.push(new Vector(j + leftMostSquare, i));
-                }
+        for(let rowIndex = 0; rowIndex < requiredSquares.length; rowIndex++) {
+            const row = requiredSquares[rowIndex];
+            for(let columnIndex = 0; columnIndex < row.length; columnIndex++) {
+                this._playingField[rowIndex][columnIndex + leftMostSquare] = this._movingBlock;
+                this._movingBlock.currentPositions.push(new Vector(columnIndex + leftMostSquare, rowIndex));                
             }
         }
     }
 
-    private canMoveToNewPositions(newPositions: Vector[], block: Block):boolean {
+    /**
+     * Check if the provided positions are free (no other blocks, not outside the field)
+     * 
+     * @param newPositions The positions the block wants to move to
+     */
+    private canMoveToNewPositions(newPositions: Vector[]):boolean {
         for (let i = 0; i < newPositions.length; i++) {
             const newPosition = newPositions[i];
 
@@ -193,10 +192,10 @@ class PlayingField {
                 return false;
             }
 
-            // Collision with another block
+            // Collision with another block, but not the moving block
             const currentValue = this._playingField[newPosition.y][newPosition.x];
             if(currentValue != undefined &&
-                currentValue != block) {
+                currentValue != this._movingBlock) {
                 return false;
             }
         }

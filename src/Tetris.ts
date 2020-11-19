@@ -8,11 +8,12 @@
  */
 class Tetris extends Game {
 
+    /**
+     * Load the required images
+     */
     protected initResources(): any {
-        //TODO add more resources as needed
         return new ResourceConfig(
             [
-                "buttonBlue.png",
                 "background.png",
                 "I.png",
                 "L.png",

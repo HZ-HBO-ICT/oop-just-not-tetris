@@ -11,20 +11,10 @@ class LBlock extends Block {
     private _right = [[true, true, true], 
                      [true, false, false]];
 
+    /**
+     * @see Block.initialSquares
+     */
     public get initialSquares(): boolean[][] {
         return this._up;
-    }
-
-    public prepareRotate(): boolean[][] {
-        switch(this.nextOrientation()) {
-            case Orientation.UP:
-                return this._up;
-            case Orientation.DOWN:
-                return this._down;
-            case Orientation.LEFT:
-                return this._left;
-            case Orientation.RIGHT:
-                return this._right;
-        }
     }
 }

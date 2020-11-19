@@ -172,8 +172,7 @@ m2=1..n</panel_attributes>
 --
 + moveDown()
 + moveLeft()
-+ moveRight()
-+ rotate()</panel_attributes>
++ moveRight()</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -193,42 +192,17 @@ m2=1</panel_attributes>
     <coordinates>
       <x>1232</x>
       <y>560</y>
-      <w>322</w>
+      <w>364</w>
       <h>168</h>
     </coordinates>
     <panel_attributes>/Block/
 --
-- orientation: Orientation
+- currentPositions: Vector[]
 --
-/+ prepareRotate(): Vector[]/
-+ rotate()</panel_attributes>
+/+ getInitialSquares(): boolean[][]/
++ getCurrentPositions(): Vector[]
++ setCurrentPositions(Vector[])</panel_attributes>
     <additional_attributes/>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>1652</x>
-      <y>602</y>
-      <w>266</w>
-      <h>98</h>
-    </coordinates>
-    <panel_attributes>&lt;&lt;enum&gt;&gt;
-Orientation
---
-UP, DOWN, LEFT, RIGHT</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>1540</x>
-      <y>644</y>
-      <w>140</w>
-      <h>42</h>
-    </coordinates>
-    <panel_attributes>lt=-
-m2=1</panel_attributes>
-    <additional_attributes>10.0;10.0;80.0;10.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
@@ -252,7 +226,7 @@ m2=1..n</panel_attributes>
     </coordinates>
     <panel_attributes>IBlock
 --
-+ prepareRotate(): Vector[]</panel_attributes>
++ getInitialSquares(): boolean[][]</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -265,7 +239,7 @@ m2=1..n</panel_attributes>
     </coordinates>
     <panel_attributes>LBlock
 --
-+ prepareRotate(): Vector[]</panel_attributes>
++ getInitialSquares(): boolean[][]</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -278,7 +252,7 @@ m2=1..n</panel_attributes>
     </coordinates>
     <panel_attributes>RBlock
 --
-+ prepareRotate(): Vector[]</panel_attributes>
++ getInitialSquares(): boolean[][]</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -291,7 +265,7 @@ m2=1..n</panel_attributes>
     </coordinates>
     <panel_attributes>SBlock
 --
-+ prepareRotate(): Vector[]</panel_attributes>
++ getInitialSquares(): boolean[][]</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -304,7 +278,7 @@ m2=1..n</panel_attributes>
     </coordinates>
     <panel_attributes>TBlock
 --
-+ prepareRotate(): Vector[]</panel_attributes>
++ getInitialSquares(): boolean[][]</panel_attributes>
     <additional_attributes/>
   </element>
   <element>

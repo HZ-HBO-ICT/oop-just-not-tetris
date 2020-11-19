@@ -88,10 +88,6 @@ class LevelView extends View {
                 this.playingField.moveRight();
                 this.lastMove = performance.now();
             }
-            if (input.keyboard.isKeyDown(Input.KEY_UP)) {
-                this.playingField.rotate();
-                this.lastMove = performance.now();
-            }
         }
     }
     draw(ctx) {
@@ -117,11 +113,11 @@ class LevelView extends View {
     generateBlocks(amount) {
         const blocks = [];
         for (let i = 0; i < amount; i++) {
-            blocks.push(this.getRandomBlock());
+            blocks.push(this.createRandomBlock());
         }
         return blocks;
     }
-    getRandomBlock() {
+    createRandomBlock() {
         const randomBlock = this.availableBlocks[Game.randomInteger(0, this.availableBlocks.length - 1)];
         switch (randomBlock) {
             case "I":
@@ -153,49 +149,25 @@ class PlayingField {
     }
     moveDown() {
         console.log("Moving block down on playing field");
-        const currentPositions = this._movingBlock.currentPositions;
-        const newPositions = currentPositions.map((currentPosition) => {
-            return currentPosition.add(new Vector(0, 1));
-        });
-        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
-        if (canMove) {
-            currentPositions.forEach((currentPosition) => {
-                this._playingField[currentPosition.y][currentPosition.x] = undefined;
-            });
-            newPositions.forEach((newPosition) => {
-                this._playingField[newPosition.y][newPosition.x] = this._movingBlock;
-            });
-            this._movingBlock.currentPositions = newPositions;
-        }
-        else {
+        if (!this.move(new Vector(0, 1))) {
             this.newMovingBlock();
         }
         console.log(this._playingField);
     }
     moveLeft() {
         console.log("Moving block left on playing field");
-        const currentPositions = this._movingBlock.currentPositions;
-        const newPositions = currentPositions.map((currentPosition) => {
-            return currentPosition.add(new Vector(-1, 0));
-        });
-        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
-        if (canMove) {
-            currentPositions.forEach((currentPosition) => {
-                this._playingField[currentPosition.y][currentPosition.x] = undefined;
-            });
-            newPositions.forEach((newPosition) => {
-                this._playingField[newPosition.y][newPosition.x] = this._movingBlock;
-            });
-            this._movingBlock.currentPositions = newPositions;
-        }
+        this.move(new Vector(-1, 0));
     }
     moveRight() {
         console.log("Moving block right on playing field");
+        this.move(new Vector(1, 0));
+    }
+    move(translation) {
         const currentPositions = this._movingBlock.currentPositions;
         const newPositions = currentPositions.map((currentPosition) => {
-            return currentPosition.add(new Vector(1, 0));
+            return currentPosition.add(translation);
         });
-        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
+        const canMove = this.canMoveToNewPositions(newPositions);
         if (canMove) {
             currentPositions.forEach((currentPosition) => {
                 this._playingField[currentPosition.y][currentPosition.x] = undefined;
@@ -205,40 +177,15 @@ class PlayingField {
             });
             this._movingBlock.currentPositions = newPositions;
         }
-    }
-    rotate() {
-        console.log("Rotating block on playing field");
-        const squaresAfterRotate = this._movingBlock.prepareRotate();
-        const topLeftPosition = this.calculateTopLeftPosition(this._movingBlock.currentPositions);
-        const newPositions = [];
-        for (let rowIndex = 0; rowIndex < squaresAfterRotate.length; rowIndex++) {
-            const row = squaresAfterRotate[rowIndex];
-            for (let columnIndex = 0; columnIndex < row.length; columnIndex++) {
-                if (row[columnIndex]) {
-                    newPositions.push(new Vector(columnIndex + topLeftPosition.x, rowIndex + topLeftPosition.y));
-                }
-            }
-        }
-        console.log(newPositions);
-        const canMove = this.canMoveToNewPositions(newPositions, this._movingBlock);
-        if (canMove) {
-            this._movingBlock.rotate();
-            this._movingBlock.currentPositions.forEach((currentPosition) => {
-                this._playingField[currentPosition.y][currentPosition.x] = undefined;
-            });
-            newPositions.forEach((newPosition) => {
-                this._playingField[newPosition.y][newPosition.x] = this._movingBlock;
-            });
-            this._movingBlock.currentPositions = newPositions;
-        }
+        return canMove;
     }
     draw(ctx) {
         const drawnBlocks = [];
-        for (let i = 0; i < this._playingField.length; i++) {
-            const row = this._playingField[i];
-            for (let j = 0; j < row.length; j++) {
-                if (row[j] != undefined) {
-                    const block = row[j];
+        for (let rowIndex = 0; rowIndex < this._playingField.length; rowIndex++) {
+            const row = this._playingField[rowIndex];
+            for (let columnIndex = 0; columnIndex < row.length; columnIndex++) {
+                if (row[columnIndex] != undefined) {
+                    const block = row[columnIndex];
                     if (drawnBlocks.indexOf(block) == -1) {
                         const topLeft = this.calculateTopLeftPosition(block.currentPositions);
                         drawnBlocks.push(block);
@@ -275,17 +222,15 @@ class PlayingField {
         const requiredSquares = this._movingBlock.initialSquares;
         const playingFieldCenter = Math.floor(this._playingFieldSize.x / 2);
         const leftMostSquare = playingFieldCenter - Math.floor(requiredSquares[0].length / 2);
-        for (let i = 0; i < requiredSquares.length; i++) {
-            const row = requiredSquares[i];
-            for (let j = 0; j < row.length; j++) {
-                if (row[j]) {
-                    this._playingField[i][j + leftMostSquare] = this._movingBlock;
-                    this._movingBlock.currentPositions.push(new Vector(j + leftMostSquare, i));
-                }
+        for (let rowIndex = 0; rowIndex < requiredSquares.length; rowIndex++) {
+            const row = requiredSquares[rowIndex];
+            for (let columnIndex = 0; columnIndex < row.length; columnIndex++) {
+                this._playingField[rowIndex][columnIndex + leftMostSquare] = this._movingBlock;
+                this._movingBlock.currentPositions.push(new Vector(columnIndex + leftMostSquare, rowIndex));
             }
         }
     }
-    canMoveToNewPositions(newPositions, block) {
+    canMoveToNewPositions(newPositions) {
         for (let i = 0; i < newPositions.length; i++) {
             const newPosition = newPositions[i];
             if (newPosition.y >= this._playingFieldSize.y) {
@@ -296,7 +241,7 @@ class PlayingField {
             }
             const currentValue = this._playingField[newPosition.y][newPosition.x];
             if (currentValue != undefined &&
-                currentValue != block) {
+                currentValue != this._movingBlock) {
                 return false;
             }
         }
@@ -310,7 +255,6 @@ class StartView extends View {
     }
     init(game) {
         super.init(game);
-        this.buttonImage = game.repo.getImage("buttonBlue");
     }
     listen(input) {
         super.listen(input);
@@ -320,14 +264,13 @@ class StartView extends View {
     }
     adjust(game) {
         if (this.shouldGoToNextView) {
-            game.switchViewTo('level');
+            game.switchViewTo("level");
         }
     }
     draw(ctx) {
         this.writeTextToCanvas(ctx, "Just not Tetris", 140, this.center.x, 150);
         this.writeTextToCanvas(ctx, "HIT 'S' TO START", 40, this.center.x, this.center.y - 135);
-        this.drawImage(ctx, this.buttonImage, this.center.x, this.center.y + 220);
-        this.writeTextToCanvas(ctx, "Play", 20, this.center.x, this.center.y + 229, 'center', 'black');
+        this.writeTextToCanvas(ctx, "Play", 20, this.center.x, this.center.y + 229, "center", "black");
     }
 }
 class Game {
@@ -387,7 +330,6 @@ class Game {
 class Tetris extends Game {
     initResources() {
         return new ResourceConfig([
-            "buttonBlue.png",
             "background.png",
             "I.png",
             "L.png",
@@ -509,47 +451,15 @@ class Block extends GameItem {
     constructor(image) {
         super(image, null, null, 0, 0);
         this._currentPossitions = [];
-        this._orientation = Orientation.UP;
+    }
+    updatePosition(newTopLeft) {
+        this._position = new Vector(newTopLeft.x + this._image.width / 2, newTopLeft.y + this._image.height / 2);
     }
     get currentPositions() {
         return this._currentPossitions;
     }
     set currentPositions(newPositions) {
         this._currentPossitions = newPositions;
-    }
-    rotate() {
-        this._orientation = this.nextOrientation();
-        let newAngleDegrees = 0;
-        switch (this._orientation) {
-            case Orientation.UP:
-                newAngleDegrees = 0;
-                break;
-            case Orientation.RIGHT:
-                newAngleDegrees = 90;
-                break;
-            case Orientation.DOWN:
-                newAngleDegrees = 180;
-                break;
-            case Orientation.LEFT:
-                newAngleDegrees = 270;
-                break;
-        }
-        this._angle = newAngleDegrees * (Math.PI / 180);
-    }
-    updatePosition(newTopLeft) {
-        this._position = new Vector(newTopLeft.x + this._image.width / 2, newTopLeft.y + this._image.height / 2);
-    }
-    nextOrientation() {
-        switch (this._orientation) {
-            case Orientation.UP:
-                return Orientation.RIGHT;
-            case Orientation.RIGHT:
-                return Orientation.DOWN;
-            case Orientation.DOWN:
-                return Orientation.LEFT;
-            case Orientation.LEFT:
-                return Orientation.UP;
-        }
     }
 }
 class IBlock extends Block {
@@ -563,16 +473,6 @@ class IBlock extends Block {
     }
     get initialSquares() {
         return this._up_down;
-    }
-    prepareRotate() {
-        switch (this.nextOrientation()) {
-            case Orientation.UP:
-            case Orientation.DOWN:
-                return this._up_down;
-            case Orientation.LEFT:
-            case Orientation.RIGHT:
-                return this._left_right;
-        }
     }
 }
 class LBlock extends Block {
@@ -592,32 +492,9 @@ class LBlock extends Block {
     get initialSquares() {
         return this._up;
     }
-    prepareRotate() {
-        switch (this.nextOrientation()) {
-            case Orientation.UP:
-                return this._up;
-            case Orientation.DOWN:
-                return this._down;
-            case Orientation.LEFT:
-                return this._left;
-            case Orientation.RIGHT:
-                return this._right;
-        }
-    }
 }
-var Orientation;
-(function (Orientation) {
-    Orientation[Orientation["UP"] = 0] = "UP";
-    Orientation[Orientation["DOWN"] = 1] = "DOWN";
-    Orientation[Orientation["LEFT"] = 2] = "LEFT";
-    Orientation[Orientation["RIGHT"] = 3] = "RIGHT";
-})(Orientation || (Orientation = {}));
 class RBlock extends Block {
     get initialSquares() {
-        return [[true, true],
-            [true, true]];
-    }
-    prepareRotate() {
         return [[true, true],
             [true, true]];
     }
@@ -639,19 +516,6 @@ class SBlock extends Block {
     get initialSquares() {
         return this._up;
     }
-    prepareRotate() {
-        switch (this.nextOrientation()) {
-            case Orientation.UP:
-                return this._up;
-            case Orientation.DOWN:
-                return this._down;
-            case Orientation.LEFT:
-                return this._left;
-            case Orientation.RIGHT:
-                return this._right;
-        }
-        ;
-    }
 }
 class TBlock extends Block {
     constructor() {
@@ -668,21 +532,7 @@ class TBlock extends Block {
             [true, false]];
     }
     get initialSquares() {
-        return [[false, true, false],
-            [true, true, true]];
-    }
-    prepareRotate() {
-        switch (this.nextOrientation()) {
-            case Orientation.UP:
-                return this._up;
-            case Orientation.DOWN:
-                return this._down;
-            case Orientation.LEFT:
-                return this._left;
-            case Orientation.RIGHT:
-                return this._right;
-        }
-        ;
+        return this._up;
     }
 }
 class LoadView extends View {
@@ -707,8 +557,6 @@ LoadView.MINIMUM_FRAME_TIME = 1000;
 class Input {
     constructor() {
         this.keyboard = new KeyListener();
-        this.mouse = new MouseListener();
-        this.window = new WindowListener();
     }
 }
 Input.MOUSE_NOTHING = 0;
@@ -778,56 +626,6 @@ class KeyListener {
     }
     isKeyDown(keyCode) {
         return this.keyCodeStates[keyCode] == true;
-    }
-}
-class MouseListener {
-    constructor() {
-        this.mouseDown = (ev) => {
-            this.buttonDown = ev.buttons;
-        };
-        this.mouseUp = (ev) => {
-            this.buttonDown = 0;
-        };
-        this.mouseMove = (ev) => {
-            this.position = new Vector(ev.clientX, ev.clientY);
-        };
-        this.mouseEnter = (ev) => {
-            this.inWindow = true;
-        };
-        this.mouseLeave = (ev) => {
-            this.inWindow = false;
-        };
-        this.position = new Vector();
-        this.inWindow = true;
-        window.addEventListener("mousedown", this.mouseDown);
-        window.addEventListener("mouseup", this.mouseUp);
-        window.addEventListener("mousemove", this.mouseMove);
-        document.addEventListener("mouseenter", this.mouseEnter);
-        document.addEventListener("mouseleave", this.mouseLeave);
-    }
-}
-class WindowListener {
-    constructor() {
-        this.listen(0);
-    }
-    listen(interval) {
-        var w = 0;
-        var h = 0;
-        if (!window.innerWidth) {
-            if (!(document.documentElement.clientWidth == 0)) {
-                w = document.documentElement.clientWidth;
-                h = document.documentElement.clientHeight;
-            }
-            else {
-                w = document.body.clientWidth;
-                h = document.body.clientHeight;
-            }
-        }
-        else {
-            w = window.innerWidth;
-            h = window.innerHeight;
-        }
-        this.size = new Vector(w, h);
     }
 }
 class ResourceConfig {

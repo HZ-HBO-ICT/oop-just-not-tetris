@@ -10,22 +10,11 @@ class TBlock extends Block {
     private _right =  [[true, false], 
                        [true, true],
                        [true, false]];
-
+    
+    /**
+     * @see Block.initialSquares
+     */
     public get initialSquares(): boolean[][] {
-        return [[false, true, false], 
-                [true, true, true]];
-    }
-
-    public prepareRotate(): boolean[][] {
-        switch(this.nextOrientation()) {
-            case Orientation.UP:
-                return this._up;
-            case Orientation.DOWN:
-                return this._down;
-            case Orientation.LEFT:
-                return this._left;
-            case Orientation.RIGHT:
-                return this._right;
-        };
+        return this._up;
     }
 }
