@@ -12,7 +12,6 @@ class Tetris extends Game {
         //TODO add more resources as needed
         return new ResourceConfig(
             [
-                "buttonBlue.png",
                 "background.png",
                 "I.png",
                 "L.png",

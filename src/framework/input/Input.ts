@@ -77,16 +77,4 @@ class Input {
      * moment.
      */
     public readonly keyboard : KeyListener = new KeyListener();
-
-    /**
-     * Holds the current kouse state. It knows where the mouse cursor is and 
-     * the state of each button.
-     */
-    public readonly mouse : MouseListener = new MouseListener();
-
-    /**
-     * Holds the current window size.
-     */
-    public readonly window : WindowListener = new WindowListener();
-
-}
+} 

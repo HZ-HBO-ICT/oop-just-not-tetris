@@ -49,7 +49,7 @@ class LoadView extends View {
      * @override
      */
     public draw(ctx: CanvasRenderingContext2D) {
-        this.writeTextToCanvas(ctx, "Loading...", 80, this.center.x, this.center.y);
+        this.writeTextToCanvas(ctx, "Loading...", 80, this.center.x, this.center.y, 'center', 'black');
     }
 
 }

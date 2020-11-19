@@ -297,7 +297,6 @@ class StartView extends View {
     }
     init(game) {
         super.init(game);
-        this.buttonImage = game.repo.getImage("buttonBlue");
     }
     listen(input) {
         super.listen(input);
@@ -311,10 +310,8 @@ class StartView extends View {
         }
     }
     draw(ctx) {
-        this.writeTextToCanvas(ctx, "Just not Tetris", 140, this.center.x, 150);
-        this.writeTextToCanvas(ctx, "HIT 'S' TO START", 40, this.center.x, this.center.y - 135);
-        this.drawImage(ctx, this.buttonImage, this.center.x, this.center.y + 220);
-        this.writeTextToCanvas(ctx, "Play", 20, this.center.x, this.center.y + 229, 'center', 'black');
+        this.writeTextToCanvas(ctx, "Just not Tetris", 140, this.center.x, 150, 'center', 'black');
+        this.writeTextToCanvas(ctx, "HIT 'S' TO START", 40, this.center.x, this.center.y - 135, 'center', 'black');
     }
 }
 class Game {
@@ -374,7 +371,6 @@ class Game {
 class Tetris extends Game {
     initResources() {
         return new ResourceConfig([
-            "buttonBlue.png",
             "background.png",
             "I.png",
             "L.png",
@@ -411,15 +407,13 @@ class LoadView extends View {
         }
     }
     draw(ctx) {
-        this.writeTextToCanvas(ctx, "Loading...", 80, this.center.x, this.center.y);
+        this.writeTextToCanvas(ctx, "Loading...", 80, this.center.x, this.center.y, 'center', 'black');
     }
 }
 LoadView.MINIMUM_FRAME_TIME = 1000;
 class Input {
     constructor() {
         this.keyboard = new KeyListener();
-        this.mouse = new MouseListener();
-        this.window = new WindowListener();
     }
 }
 Input.MOUSE_NOTHING = 0;
@@ -489,56 +483,6 @@ class KeyListener {
     }
     isKeyDown(keyCode) {
         return this.keyCodeStates[keyCode] == true;
-    }
-}
-class MouseListener {
-    constructor() {
-        this.mouseDown = (ev) => {
-            this.buttonDown = ev.buttons;
-        };
-        this.mouseUp = (ev) => {
-            this.buttonDown = 0;
-        };
-        this.mouseMove = (ev) => {
-            this.position = new Vector(ev.clientX, ev.clientY);
-        };
-        this.mouseEnter = (ev) => {
-            this.inWindow = true;
-        };
-        this.mouseLeave = (ev) => {
-            this.inWindow = false;
-        };
-        this.position = new Vector();
-        this.inWindow = true;
-        window.addEventListener("mousedown", this.mouseDown);
-        window.addEventListener("mouseup", this.mouseUp);
-        window.addEventListener("mousemove", this.mouseMove);
-        document.addEventListener("mouseenter", this.mouseEnter);
-        document.addEventListener("mouseleave", this.mouseLeave);
-    }
-}
-class WindowListener {
-    constructor() {
-        this.listen(0);
-    }
-    listen(interval) {
-        var w = 0;
-        var h = 0;
-        if (!window.innerWidth) {
-            if (!(document.documentElement.clientWidth == 0)) {
-                w = document.documentElement.clientWidth;
-                h = document.documentElement.clientHeight;
-            }
-            else {
-                w = document.body.clientWidth;
-                h = document.body.clientHeight;
-            }
-        }
-        else {
-            w = window.innerWidth;
-            h = window.innerHeight;
-        }
-        this.size = new Vector(w, h);
     }
 }
 class ResourceConfig {
