@@ -65,50 +65,50 @@ class View {
 class LevelView extends View {
     constructor() {
         super(...arguments);
-        this.backgroundSize = new Vector(446, 700);
-        this.availableBlocks = ["I", "L", "R", "S", "T"];
-        this.delay = 500;
-        this.lastMoveDown = performance.now();
-        this.lastMove = performance.now();
+        this._backgroundSize = new Vector(446, 700);
+        this._availableBlocks = ["I", "L", "R", "S", "T"];
+        this._delay = 500;
+        this._lastMoveDown = performance.now();
+        this._lastMove = performance.now();
     }
     init(game) {
         super.init(game);
-        this.background = game.repo.getImage("background");
-        this.playingField = new PlayingField(new Vector(7, 14), this.generateBlocks(10));
+        this._background = game.repo.getImage("background");
+        this._playingField = new PlayingField(new Vector(7, 14), this.generateBlocks(10));
     }
     listen(input) {
         super.listen(input);
-        const timeSinceLastMove = performance.now() - this.lastMove;
+        const timeSinceLastMove = performance.now() - this._lastMove;
         if (timeSinceLastMove > 200) {
             if (input.keyboard.isKeyDown(Input.KEY_LEFT)) {
-                this.playingField.moveLeft();
-                this.lastMove = performance.now();
+                this._playingField.moveLeft();
+                this._lastMove = performance.now();
             }
             if (input.keyboard.isKeyDown(Input.KEY_RIGHT)) {
-                this.playingField.moveRight();
-                this.lastMove = performance.now();
+                this._playingField.moveRight();
+                this._lastMove = performance.now();
             }
         }
     }
     draw(ctx) {
         super.draw(ctx);
         this.drawPlayingBackground(ctx);
-        this.playingField.draw(ctx);
+        this._playingField.draw(ctx);
     }
     move(canvas) {
         super.move(canvas);
-        if (performance.now() - this.lastMoveDown > this.delay) {
-            this.lastMoveDown = performance.now();
-            this.playingField.moveDown();
+        if (performance.now() - this._lastMoveDown > this._delay) {
+            this._lastMoveDown = performance.now();
+            this._playingField.moveDown();
         }
     }
     drawPlayingBackground(ctx) {
-        this.background.width = this.backgroundSize.x;
-        this.background.height = this.backgroundSize.y;
-        this.backgroundPosition = new Vector(this.center.x, this.background.height / 2 + 30);
-        const backgroundTopLeft = new Vector(this.backgroundPosition.x - this.backgroundSize.x / 2, this.backgroundPosition.y - this.backgroundSize.y / 2);
-        this.playingField.topLeft = new Vector(12 + backgroundTopLeft.x, 68 + backgroundTopLeft.y);
-        this.drawImage(ctx, this.background, this.backgroundPosition.x, this.backgroundPosition.y);
+        this._background.width = this._backgroundSize.x;
+        this._background.height = this._backgroundSize.y;
+        this._backgroundPosition = new Vector(this.center.x, this._background.height / 2 + 30);
+        const backgroundTopLeft = new Vector(this._backgroundPosition.x - this._backgroundSize.x / 2, this._backgroundPosition.y - this._backgroundSize.y / 2);
+        this._playingField.topLeft = new Vector(12 + backgroundTopLeft.x, 68 + backgroundTopLeft.y);
+        this.drawImage(ctx, this._background, this._backgroundPosition.x, this._backgroundPosition.y);
     }
     generateBlocks(amount) {
         const blocks = [];
@@ -118,7 +118,7 @@ class LevelView extends View {
         return blocks;
     }
     createRandomBlock() {
-        const randomBlock = this.availableBlocks[Game.randomInteger(0, this.availableBlocks.length - 1)];
+        const randomBlock = this._availableBlocks[Game.randomInteger(0, this._availableBlocks.length - 1)];
         switch (randomBlock) {
             case "I":
                 return new IBlock(this.game.repo.getImage(randomBlock));
@@ -180,35 +180,18 @@ class PlayingField {
         return canMove;
     }
     draw(ctx) {
-        const drawnBlocks = [];
         for (let rowIndex = 0; rowIndex < this._playingField.length; rowIndex++) {
             const row = this._playingField[rowIndex];
             for (let columnIndex = 0; columnIndex < row.length; columnIndex++) {
                 if (row[columnIndex] != undefined) {
                     const block = row[columnIndex];
-                    if (drawnBlocks.indexOf(block) == -1) {
-                        const topLeft = this.calculateTopLeftPosition(block.currentPositions);
-                        drawnBlocks.push(block);
-                        const newTopLeft = new Vector(topLeft.x * this._squareSize + this._topLeft.x, topLeft.y * this._squareSize + this._topLeft.y);
-                        block.updatePosition(newTopLeft);
-                        block.draw(ctx);
-                    }
+                    const square = block.newSquare();
+                    const newTopLeft = new Vector(columnIndex * this._squareSize + this._topLeft.x, rowIndex * this._squareSize + this._topLeft.y);
+                    square.updatePosition(newTopLeft);
+                    square.draw(ctx);
                 }
             }
         }
-    }
-    calculateTopLeftPosition(positions) {
-        const leftMostX = positions.map((vector) => {
-            return vector.x;
-        }).reduce((smallest, current) => {
-            return (current < smallest ? current : smallest);
-        });
-        const leftMostY = positions.map((vector) => {
-            return vector.y;
-        }).reduce((smallest, current) => {
-            return (current < smallest ? current : smallest);
-        });
-        return new Vector(leftMostX, leftMostY);
     }
     set topLeft(topLeft) {
         this._topLeft = topLeft;
@@ -225,8 +208,10 @@ class PlayingField {
         for (let rowIndex = 0; rowIndex < requiredSquares.length; rowIndex++) {
             const row = requiredSquares[rowIndex];
             for (let columnIndex = 0; columnIndex < row.length; columnIndex++) {
-                this._playingField[rowIndex][columnIndex + leftMostSquare] = this._movingBlock;
-                this._movingBlock.currentPositions.push(new Vector(columnIndex + leftMostSquare, rowIndex));
+                if (row[columnIndex]) {
+                    this._playingField[rowIndex][columnIndex + leftMostSquare] = this._movingBlock;
+                    this._movingBlock.currentPositions.push(new Vector(columnIndex + leftMostSquare, rowIndex));
+                }
             }
         }
     }
@@ -446,13 +431,14 @@ GameItem.OFFSCREEN_BEHAVIOUR_DIE = 3;
 GameItem.STATE_ALIVE = 0;
 GameItem.STATE_DYING = 8;
 GameItem.STATE_DEAD = 9;
-class Block extends GameItem {
+class Block {
     constructor(image) {
-        super(image, null, null, 0, 0);
         this._currentPossitions = [];
+        this._squares = [];
+        this._image = image;
     }
-    updatePosition(newTopLeft) {
-        this._position = new Vector(newTopLeft.x + this._image.width / 2, newTopLeft.y + this._image.height / 2);
+    newSquare() {
+        return new Square(this._image);
     }
     get currentPositions() {
         return this._currentPossitions;
@@ -514,6 +500,17 @@ class SBlock extends Block {
     }
     get initialSquares() {
         return this._up;
+    }
+}
+class Square extends GameItem {
+    constructor(image) {
+        super(image, null, null, 0, 0);
+    }
+    draw(ctx) {
+        super.draw(ctx);
+    }
+    updatePosition(newTopLeft) {
+        this._position = new Vector(newTopLeft.x + this._image.width / 2, newTopLeft.y + this._image.height / 2);
     }
 }
 class TBlock extends Block {

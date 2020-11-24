@@ -95,47 +95,21 @@ class PlayingField {
      * @param ctx The context to draw on
      */
     public draw(ctx: CanvasRenderingContext2D) {
-        const drawnBlocks: Block[] = [];
         for(let rowIndex = 0; rowIndex < this._playingField.length; rowIndex++) {
             const row = this._playingField[rowIndex];
             for(let columnIndex = 0; columnIndex < row.length; columnIndex++) {
                 if(row[columnIndex] != undefined) {
                     const block = row[columnIndex];
-                    if(drawnBlocks.indexOf(block) == -1) {
-                        const topLeft = this.calculateTopLeftPosition(block.currentPositions)
-                        
-                        drawnBlocks.push(block);
-                        const newTopLeft = new Vector(topLeft.x * this._squareSize + this._topLeft.x, 
-                            topLeft.y * this._squareSize + this._topLeft.y);
-                        block.updatePosition(newTopLeft);
-                        block.draw(ctx);
-                    }
+                    const square = block.newSquare();
+
+                    const newTopLeft = new Vector(columnIndex * this._squareSize + this._topLeft.x, 
+                        rowIndex * this._squareSize + this._topLeft.y);
+                    square.updatePosition(newTopLeft);
+                    
+                    square.draw(ctx);
                 }
             }
-        }        
-    }
-
-    /**
-     * From an array of vectors, calculate the top-left most Vector
-     * 
-     * @param positions 
-     */
-    private calculateTopLeftPosition(positions: Vector[]): Vector {
-        // First get all the X positions, than reduce it to find the smallest X value
-        const leftMostX = positions.map((vector) => {
-            return vector.x;
-        }).reduce((smallest, current) => {
-            return (current < smallest ? current : smallest);
-        });
-
-        // First get all the Y positions, than reduce it to find the smallest Y value
-        const leftMostY = positions.map((vector) => {
-            return vector.y;
-        }).reduce((smallest, current) => {
-            return (current < smallest ? current : smallest);
-        });
-
-        return new Vector(leftMostX, leftMostY);
+        }
     }
 
     /**
@@ -169,8 +143,10 @@ class PlayingField {
         for(let rowIndex = 0; rowIndex < requiredSquares.length; rowIndex++) {
             const row = requiredSquares[rowIndex];
             for(let columnIndex = 0; columnIndex < row.length; columnIndex++) {
-                this._playingField[rowIndex][columnIndex + leftMostSquare] = this._movingBlock;
-                this._movingBlock.currentPositions.push(new Vector(columnIndex + leftMostSquare, rowIndex));                
+                if(row[columnIndex]) {
+                    this._playingField[rowIndex][columnIndex + leftMostSquare] = this._movingBlock;
+                    this._movingBlock.currentPositions.push(new Vector(columnIndex + leftMostSquare, rowIndex));                
+                }
             }
         }
     }
