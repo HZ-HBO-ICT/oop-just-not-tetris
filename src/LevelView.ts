@@ -4,18 +4,18 @@
  * The view of the Just Not Tetris level
  */
 class LevelView extends View {
-  private playingField: PlayingField;
+  private _playingField: PlayingField;
 
-  private background: HTMLImageElement;
-  private backgroundSize: Vector = new Vector(446, 700);
-  private backgroundPosition: Vector;
+  private _background: HTMLImageElement;
+  private _backgroundSize: Vector = new Vector(446, 700);
+  private _backgroundPosition: Vector;
 
-  private availableBlocks: string[] = ["I", "L", "R", "S", "T"];
+  private _availableBlocks: string[] = ["I", "L", "R", "S", "T"];
 
-  private delay: number = 500;
+  private _delay: number = 500;
 
-  private lastMoveDown: number = performance.now();
-  private lastMove: number = performance.now();
+  private _lastMoveDown: number = performance.now();
+  private _lastMove: number = performance.now();
 
   /**
    * Initialize the level
@@ -23,8 +23,8 @@ class LevelView extends View {
    */
   public init(game: Game) {
     super.init(game);
-    this.background = game.repo.getImage("background");
-    this.playingField = new PlayingField(
+    this._background = game.repo.getImage("background");
+    this._playingField = new PlayingField(
       new Vector(7, 14),
       this.generateBlocks(10)
     );
@@ -38,15 +38,15 @@ class LevelView extends View {
   public listen(input: Input) {
     super.listen(input);
 
-    const timeSinceLastMove = performance.now() - this.lastMove;
+    const timeSinceLastMove = performance.now() - this._lastMove;
     if (timeSinceLastMove > 200) {
       if (input.keyboard.isKeyDown(Input.KEY_LEFT)) {
-        this.playingField.moveLeft();
-        this.lastMove = performance.now();
+        this._playingField.moveLeft();
+        this._lastMove = performance.now();
       }
       if (input.keyboard.isKeyDown(Input.KEY_RIGHT)) {
-        this.playingField.moveRight();
-        this.lastMove = performance.now();
+        this._playingField.moveRight();
+        this._lastMove = performance.now();
       }
     }
   }
@@ -59,7 +59,7 @@ class LevelView extends View {
     super.draw(ctx);
 
     this.drawPlayingBackground(ctx);
-    this.playingField.draw(ctx);
+    this._playingField.draw(ctx);
   }
 
   /**
@@ -68,9 +68,9 @@ class LevelView extends View {
    */
   public move(canvas: HTMLCanvasElement) {
     super.move(canvas);
-    if (performance.now() - this.lastMoveDown > this.delay) {
-      this.lastMoveDown = performance.now();
-      this.playingField.moveDown();
+    if (performance.now() - this._lastMoveDown > this._delay) {
+      this._lastMoveDown = performance.now();
+      this._playingField.moveDown();
     }
   }
 
@@ -80,30 +80,30 @@ class LevelView extends View {
    * @param ctx The context to draw on
    */
   private drawPlayingBackground(ctx: CanvasRenderingContext2D) {
-    this.background.width = this.backgroundSize.x;
-    this.background.height = this.backgroundSize.y;
-    this.backgroundPosition = new Vector(
+    this._background.width = this._backgroundSize.x;
+    this._background.height = this._backgroundSize.y;
+    this._backgroundPosition = new Vector(
       this.center.x,
-      this.background.height / 2 + 30
+      this._background.height / 2 + 30
     );
 
     const backgroundTopLeft: Vector = new Vector(
-      this.backgroundPosition.x - this.backgroundSize.x / 2,
-      this.backgroundPosition.y - this.backgroundSize.y / 2
+      this._backgroundPosition.x - this._backgroundSize.x / 2,
+      this._backgroundPosition.y - this._backgroundSize.y / 2
     );
 
     // Update the playing field object with information about its location on the screen
     // The offset in pixels are the distances from the top left of the image to the actual playing field in the image
-    this.playingField.topLeft = new Vector(
+    this._playingField.topLeft = new Vector(
       12 + backgroundTopLeft.x,
       68 + backgroundTopLeft.y
     );
 
     this.drawImage(
       ctx,
-      this.background,
-      this.backgroundPosition.x,
-      this.backgroundPosition.y
+      this._background,
+      this._backgroundPosition.x,
+      this._backgroundPosition.y
     );
   }
 
@@ -123,8 +123,8 @@ class LevelView extends View {
    * Create a random block
    */
   private createRandomBlock(): Block {
-    const randomBlock: string = this.availableBlocks[
-      Game.randomInteger(0, this.availableBlocks.length - 1)
+    const randomBlock: string = this._availableBlocks[
+      Game.randomInteger(0, this._availableBlocks.length - 1)
     ];
     switch (randomBlock) {
       case "I":
