@@ -434,7 +434,6 @@ GameItem.STATE_DEAD = 9;
 class Block {
     constructor(image) {
         this._currentPossitions = [];
-        this._squares = [];
         this._image = image;
     }
     newSquare() {

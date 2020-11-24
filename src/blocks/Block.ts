@@ -7,7 +7,6 @@ abstract class Block {
 
     // An array of Vectors representing the current positions of the block on the playing field
     private _currentPossitions: Vector[] = [];
-    private _squares: Square[] = [];
 
     private _image: HTMLImageElement;
 
